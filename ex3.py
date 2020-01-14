@@ -109,15 +109,16 @@ def visualize_latent(ae, data_to_visualize, labels, title, output_path):
     categoricalPlotter = CategoricalPlotter(np.unique(labels), title, output_path)
 
     lda = LinearDiscriminantAnalysis(n_components=2)
-    results_x = []
+    results = []
     results_y = []
-    for i in range(len(data_to_visualize)):
-        latent_vec = ae.encode(data_to_visualize[i])
+    for i in range(data_to_visualize.shape[1]):
+        latent_vec = ae.encode(data_to_visualize[:,i])
 
-        prediction = lda.fit(latent_vec, labels[i])
-        results_x.append(prediction[0])
-        results_y.append(prediction[1])
-        categoricalPlotter.add(labels[i], prediction[0], prediction[1])
+        results.append(latent_vec)
+    predictions = lda.fit(results, labels)
+
+    for i in range(len(predictions)):
+        categoricalPlotter.add(labels[i], predictions[i, 0], predictions[i, 1])
 
     categoricalPlotter.plot()
 
@@ -139,12 +140,12 @@ if __name__ == '__main__':
     trainer = Trainer(network, optimizer, loss)
     validator = Validator(network, loss)
 
-    train_main(epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype,
-               args.output_path)
-    network.summary()
+    # train_main(epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype,
+    #            args.output_path)
+    # network.summary()
 
     (x_train, y_train), (x_test, y_test) = get_num_dataset()
-    x_train = x_train[..., tf.newaxis, tf.newaxis]
-    x_test = x_test[..., tf.newaxis, tf.newaxis]
+    x_train = x_train[tf.newaxis, ..., tf.newaxis]
+    x_test = x_test[tf.newaxis, ..., tf.newaxis]
 
     visualize_latent(network, x_train, y_train, "title", args.output_path)
