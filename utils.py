@@ -125,12 +125,36 @@ def get_object(object_type, package, *args):
 # ~~~~   Datasets loaders   ~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
+
+def get_denoising_dataset(x_array, p):
+
+    total_arrays = []
+
+    for array in x_array:
+        x_noise_array = []
+        for image in array:
+            x_noise_array.append(add_noise_to_image(image, p))
+        total_arrays.append(np.array(x_noise_array))
+
+    return total_arrays
+
+
 def get_num_dataset():
     from tensorflow.python import keras
     mnist = keras.datasets.mnist
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
     x_train, x_test = x_train / 255.0, x_test / 255.0
     return (x_train, y_train), (x_test, y_test)
+
+
+def add_noise_to_image(image, p):
+    flatten_image = np.reshape(image, -1)
+    indices = np.random.choice(len(flatten_image), int(np.floor(len(flatten_image)*p)))
+    new_values = np.random.choice([0,1], int(np.floor(len(flatten_image)*p)))
+    flatten_image[indices] = new_values
+    new_image = np.reshape(flatten_image, image.shape)
+    return new_image
+
 
 
 

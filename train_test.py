@@ -10,10 +10,10 @@ class Trainer:
 
     def get_step(self):
         @tf.function
-        def train_step(images, labels):
+        def train_step(dest, to_predict):
             with tf.GradientTape() as tape:
-                predictions = self.model(images)
-                loss = self.loss(images, predictions)
+                predictions = self.model(to_predict)
+                loss = self.loss(dest, predictions)
             gradients = tape.gradient(loss, self.model.trainable_variables)
             self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
 

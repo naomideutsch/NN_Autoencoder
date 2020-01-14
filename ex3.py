@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from tensorflow.python.keras.losses import MSE
-from utils import get_object, Plotter, CategoricalPlotter, get_num_dataset, BinaryCrossEntropy
+from utils import *
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.manifold import TSNE
 import argparse
@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 def get_args():
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--nntype', default="AE_Network", help='The type of the network')
-    parser.add_argument('--dstype', default="num", help='The type of the dataset')
+    parser.add_argument('--dstype', default="num", help='The type of the dataset (num/denoise)')
 
     parser.add_argument('--batches', '-bs', type=int, default=32, help='number of batches')
     parser.add_argument('--epochs', '-ep', type=int, default=20, help='number of epochs')
@@ -34,6 +34,7 @@ def get_args():
 
     parser.add_argument('--max_visualization', default=2000, type=int, help='number of samples to visualize')
     parser.add_argument('--embed_tech', default="lda", help='lda/tsne')
+    parser.add_argument('--percent', default=0.2, type=float, help='percent of noise in image')
 
 
     return parser.parse_args()
@@ -58,24 +59,40 @@ def get_loss(loss_type, sump_num):
     if loss_type == "mse":
         return MSE
 
+
+
     return None
 
 
-def get_dataset(batches_num, train_size=None, val_size=None, dataset_name="num"):
+def get_denoise_dataset(batches_num, p=0.2):
     (x_train, y_train), (x_test, y_test) = get_num_dataset()
+    x_denoise = get_denoising_dataset([x_train, x_test], p)
+    x_train_noise, x_test_noise = x_denoise[0], x_denoise[1]
 
-    if train_size is not None:
-        idx = np.random.choice(x_train.shape[0], train_size)
-        x_train = x_train[idx]
-        y_train = y_train[idx]
+
+    x_train = x_train[..., tf.newaxis]
+    x_test = x_test[..., tf.newaxis]
+    x_train_noise = x_train_noise[..., tf.newaxis]
+    x_test_noise = x_test_noise[..., tf.newaxis]
+
+    # Add a channels dimension
+    train_ds = tf.data.Dataset.from_tensor_slices(
+        (x_train, x_train_noise)).shuffle(10000).batch(batches_num)
+    test_ds = tf.data.Dataset.from_tensor_slices((x_test, x_test_noise)).batch(batches_num)
+    return train_ds, test_ds
+
+
+
+def get_dataset(batches_num, *args):
+    (x_train, y_train), (x_test, y_test) = get_num_dataset()
 
     x_train = x_train[..., tf.newaxis]
     x_test = x_test[..., tf.newaxis]
 
     # Add a channels dimension
     train_ds = tf.data.Dataset.from_tensor_slices(
-        (x_train, y_train)).shuffle(10000).batch(batches_num)
-    test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(batches_num)
+        (x_train, x_train)).shuffle(10000).batch(batches_num)
+    test_ds = tf.data.Dataset.from_tensor_slices((x_test, x_test)).batch(batches_num)
     return train_ds, test_ds
 
 
@@ -138,7 +155,10 @@ if __name__ == '__main__':
     epochs = args.epochs
     optimizer = get_optimizer(args.optimizer)
     loss = get_loss(args.loss, args.batches)
-    train_ds, test_ds = get_dataset(batches, train_size=args.ts, dataset_name=args.dstype)
+
+    dataset_builder = get_dataset if args.dstype == "num" else get_denoise_dataset
+    train_ds, test_ds = dataset_builder(batches, p=args.percent)
+    print("dataset is ready")
 
     network = get_network(args.nntype)
 
