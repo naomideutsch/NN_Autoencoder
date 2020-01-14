@@ -33,6 +33,8 @@ def get_args():
     parser.add_argument('--output_path', default=os.getcwd(), help='The path to keep the output')
 
     parser.add_argument('--max_visualization', default=2000, type=int, help='number of samples to visualize')
+    parser.add_argument('--embed_tech', default="lda", help='lda/tsne')
+
 
     return parser.parse_args()
 
@@ -108,15 +110,16 @@ def train_main(epochs, train_ds, test_ds, trainer, validator, plot_freq, network
         loss_plotter.plot()
 
 
-def visualize_latent(ae, data, label, title, output_path, max_examples):
+def visualize_latent(ae, data, label, title, output_path, max_examples, embed_tech):
     categoricalPlotter = CategoricalPlotter(np.unique(label), title, output_path)
 
     latent_vecs = ae.encode(data[:min(max_examples, data.shape[0])])
-    lda = LinearDiscriminantAnalysis(n_components=2)
-    result = lda.fit_transform(latent_vecs, label[:min(max_examples, label.shape[0])])
-
-    tsne = TSNE(n_components=2)
-    result = tsne.fit_transform(latent_vecs)
+    if embed_tech == "lda":
+        lda = LinearDiscriminantAnalysis(n_components=2)
+        result = lda.fit_transform(latent_vecs, label[:min(max_examples, label.shape[0])])
+    else:
+        tsne = TSNE(n_components=2)
+        result = tsne.fit_transform(latent_vecs)
 
 
     for i in range(result.shape[0]):
@@ -142,12 +145,15 @@ if __name__ == '__main__':
     trainer = Trainer(network, optimizer, loss)
     validator = Validator(network, loss)
 
-    train_main(epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype,
-               args.output_path)
-    network.summary()
+    # train_main(epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype,
+    #            args.output_path)
+    # network.summary()
 
     (x_train, y_train), (x_test, y_test) = get_num_dataset()
     x_train = x_train[..., tf.newaxis]
     x_test = x_test[..., tf.newaxis]
 
-    visualize_latent(network, x_test, y_test, "title", args.output_path, args.max_visualization)
+    visualize_latent(network, x_test, y_test, "MNIST_claster_with_{}_and_loss_{}".format(
+        args.embed_tech, args.loss),
+                     args.output_path,
+                     args.max_visualization, args.embed_tech)
