@@ -145,6 +145,20 @@ def visualize_latent(ae, data, label, title, output_path, max_examples, embed_te
     categoricalPlotter.plot()
 
 
+def display_reconstruction(model, image, title, output_path):
+    fig, (ax1, ax2) = plt.subplots(1,2)
+    ax1.imshow(image[:, :, 0])
+    ax1.set_title("original")
+    net_input = image[tf.newaxis, ...]
+    ax2.imshow(model(net_input)[0, :, :, 0])
+    ax2.set_title("prediction")
+
+    fig.suptitle(title)
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
+    plt.savefig(os.path.join(output_path, title + ".png"))
+
+
 
 
 
@@ -165,16 +179,28 @@ if __name__ == '__main__':
     trainer = Trainer(network, optimizer, loss)
     validator = Validator(network, loss)
 
-    train_main(epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype,
-               args.output_path)
-    network.summary()
-
+    # train_main(epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype,
+    #            args.output_path)
+    # network.summary()
+    #
     (x_train, y_train), (x_test, y_test) = get_num_dataset()
     x_train = x_train[..., tf.newaxis]
     x_test = x_test[..., tf.newaxis]
+    params_title = "[method={},loss={},ds_name={}".format(args.embed_tech,
+                                                                         args.loss, args.dstype)
+    if args.dstype == "denoise":
+        params_title += ",p={}".format(args.percent)
+    params_title += "]"
 
-    visualize_latent(network, x_test, y_test,
-                     "MNIST_claster_with_{}_loss_{}_and_dataset_name_{}".format(args.embed_tech,
-                                                                         args.loss, args.dstype),
-                     args.output_path,
-                     args.max_visualization, args.embed_tech)
+    vis_title = "MNIST_claster_{}".format(params_title)
+    im_title = "reconstruct_{}".format(params_title)
+    #
+    #
+    # visualize_latent(network, x_test, y_test, vis_title,
+    #                  args.output_path,
+    #                  args.max_visualization, args.embed_tech)
+
+    display_reconstruction(network, x_test[0], im_title, args.output_path)
+
+
+
