@@ -172,7 +172,7 @@ if __name__ == '__main__':
     loss, loss_with_latent = get_loss(args.loss, args.batches)
 
     dataset_builder = get_dataset if args.dstype == "num" else get_denoise_dataset
-    train_ds, test_ds = dataset_builder(batches, p=args.percent)
+    train_ds, test_ds = dataset_builder(batches, args.percent)
     print("dataset is ready")
 
     network = get_network(args.nntype)
