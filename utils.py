@@ -74,8 +74,8 @@ class CategoricalPlotter:
             self.y[i] = []
 
     def add(self, label_idx, x, y):
-        self.x[label_idx] = x
-        self.y[label_idx] = y
+        self.x[label_idx].append(x)
+        self.y[label_idx].append(y)
 
 
     def plot(self):

@@ -31,6 +31,8 @@ def get_args():
 
     parser.add_argument('--output_path', default=os.getcwd(), help='The path to keep the output')
 
+    parser.add_argument('--max_visualization', default=2000, type=int, help='number of samples to visualize')
+
     return parser.parse_args()
 
 
@@ -105,20 +107,15 @@ def train_main(epochs, train_ds, test_ds, trainer, validator, plot_freq, network
         loss_plotter.plot()
 
 
-def visualize_latent(ae, data_to_visualize, labels, title, output_path):
-    categoricalPlotter = CategoricalPlotter(np.unique(labels), title, output_path)
+def visualize_latent(ae, data, label, title, output_path, max_examples):
+    categoricalPlotter = CategoricalPlotter(np.unique(label), title, output_path)
 
     lda = LinearDiscriminantAnalysis(n_components=2)
-    results = []
-    results_y = []
-    for i in range(data_to_visualize.shape[1]):
-        latent_vec = ae.encode(data_to_visualize[:,i])
+    latent_vecs = ae.encode(data[:min(max_examples, data.shape[0])])
+    result = lda.fit_transform(latent_vecs, label[:min(max_examples, label.shape[0])])
 
-        results.append(latent_vec)
-    predictions = lda.fit(results, labels)
-
-    for i in range(len(predictions)):
-        categoricalPlotter.add(labels[i], predictions[i, 0], predictions[i, 1])
+    for i in range(result.shape[0]):
+        categoricalPlotter.add(label[i], result[i, 0], result[i, 1])
 
     categoricalPlotter.plot()
 
@@ -140,12 +137,12 @@ if __name__ == '__main__':
     trainer = Trainer(network, optimizer, loss)
     validator = Validator(network, loss)
 
-    # train_main(epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype,
-    #            args.output_path)
-    # network.summary()
+    train_main(epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype,
+               args.output_path)
+    network.summary()
 
     (x_train, y_train), (x_test, y_test) = get_num_dataset()
-    x_train = x_train[tf.newaxis, ..., tf.newaxis]
-    x_test = x_test[tf.newaxis, ..., tf.newaxis]
+    x_train = x_train[..., tf.newaxis]
+    x_test = x_test[..., tf.newaxis]
 
-    visualize_latent(network, x_train, y_train, "title", args.output_path)
+    visualize_latent(network, x_test, y_test, "title", args.output_path, args.max_visualization)
