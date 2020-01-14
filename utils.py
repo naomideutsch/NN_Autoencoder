@@ -11,24 +11,22 @@ from PIL import Image
 import sys
 import os
 
+from tensorflow.python.keras.layers import Flatten
+
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~~     Losses      ~~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-# class cross(Loss):
-#
-#     def __init__(self):
-#         super(PairLabeledLoss, self).__init__()
-#         self.cross_entrophy_loss = SparseCategoricalCrossentropy()
-#         self.train_loss = tf.keras.metrics.Mean(name='train_loss')
-#
-#
-#     def call(self, y_true, y_pred):
-#         l1 = self.cross_entrophy_loss(y_true[:, 0], y_pred[:, 0, :])
-#         l2 = self.cross_entrophy_loss(y_true[:, 1], y_pred[:, 1, :])
-#         return l1 + l2
+class BinaryCrossEntropy(Loss):
+
+    def __init__(self, n):
+        super(BinaryCrossEntropy, self).__init__()
+        self.n = n
+
+    def call(self, x, pred):
+        return MSE(x,pred)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~     Plotting      ~~~~#

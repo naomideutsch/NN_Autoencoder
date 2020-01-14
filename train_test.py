@@ -14,6 +14,7 @@ class Trainer:
             with tf.GradientTape() as tape:
                 predictions = self.model(images)
                 loss = self.loss(images, predictions)
+                # tf.print(loss)
             gradients = tape.gradient(loss, self.model.trainable_variables)
             self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
 

@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from utils import get_object, Plotter, CategoricalPlotter, get_num_dataset
+from tensorflow.python.keras.losses import MSE
+from utils import get_object, Plotter, CategoricalPlotter, get_num_dataset, BinaryCrossEntropy
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 import argparse
 import tensorflow as tf
@@ -23,9 +24,9 @@ def get_args():
     parser.add_argument('--optimizer', '-opt', default="adam", help='optimizer  type')
     parser.add_argument('--ts', type=int, default=None, help='train size')
 
-    parser.add_argument('--loss', default="cross_entropy", help='the loss function type')
+    parser.add_argument('--loss', default="mse", help='the loss function type')
 
-    parser.add_argument('--plot_freq', '-pf', type=int, default=1875,
+    parser.add_argument('--plot_freq', '-pf', type=int, default=500,
                         help='iteration check point to the plot')
 
     parser.add_argument('--output_path', default=None, help='The path to keep the output')
@@ -45,9 +46,13 @@ def get_optimizer(optimizer_type):
     return None
 
 
-def get_loss(loss_type):
+def get_loss(loss_type, sump_num):
     if loss_type == "cross_entropy":
-            return tf.keras.losses.BinaryCrossentropy(from_logits=True)
+        return BinaryCrossEntropy(sump_num)
+
+    if loss_type == "mse":
+        return MSE
+
     return None
 
 
@@ -126,7 +131,7 @@ if __name__ == '__main__':
     batches = args.batches
     epochs = args.epochs
     optimizer = get_optimizer(args.optimizer)
-    loss = get_loss(args.loss)
+    loss = get_loss(args.loss, args.batches)
     train_ds, test_ds = get_dataset(batches, train_size=args.ts, dataset_name=args.dstype)
 
     network = get_network(args.nntype)
@@ -137,6 +142,6 @@ if __name__ == '__main__':
     train_main(epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype)
     network.summary()
 
-    (x_train, y_train), (x_test, y_test) = get_num_dataset()
-
-    visualize_latent(network, x_train, y_train, "title", "")
+    # (x_train, y_train), (x_test, y_test) = get_num_dataset()
+    #
+    # visualize_latent(network, x_train, y_train, "title", args.output_path)
