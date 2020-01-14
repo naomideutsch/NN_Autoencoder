@@ -26,7 +26,7 @@ def get_args():
 
     parser.add_argument('--loss', default="mse", help='the loss function type')
 
-    parser.add_argument('--plot_freq', '-pf', type=int, default=500,
+    parser.add_argument('--plot_freq', '-pf', type=int, default=1875,
                         help='iteration check point to the plot')
 
     parser.add_argument('--output_path', default=None, help='The path to keep the output')
@@ -74,9 +74,9 @@ def get_dataset(batches_num, train_size=None, val_size=None, dataset_name="num")
     return train_ds, test_ds
 
 
-def train_main(epochs, train_ds, test_ds, trainer, validator, plot_freq, network_type):
+def train_main(epochs, train_ds, test_ds, trainer, validator, plot_freq, network_type, output_path):
 
-    loss_plotter = Plotter(['train'], network_type, "Loss")
+    loss_plotter = Plotter(['train'], network_type, os.path.join(output_path, "Loss"))
     try:
         train_counter = 0
         train_step = trainer.get_step()
@@ -139,9 +139,9 @@ if __name__ == '__main__':
     trainer = Trainer(network, optimizer, loss)
     validator = Validator(network, loss)
 
-    train_main(epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype)
+    train_main(epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype, args.output_path)
     network.summary()
 
-    # (x_train, y_train), (x_test, y_test) = get_num_dataset()
-    #
-    # visualize_latent(network, x_train, y_train, "title", args.output_path)
+    (x_train, y_train), (x_test, y_test) = get_num_dataset()
+
+    visualize_latent(network, x_train, y_train, "title", args.output_path)
