@@ -174,6 +174,7 @@ if __name__ == '__main__':
     x_test = x_test[..., tf.newaxis]
 
     visualize_latent(network, x_test, y_test,
-                     "MNIST_claster_with_{}_and_loss_{}".format(args.embed_tech, args.loss),
+                     "MNIST_claster_with_{}_loss_{}_and_dataset_name_{}".format(args.embed_tech,
+                                                                         args.loss, args.dstype),
                      args.output_path,
                      args.max_visualization, args.embed_tech)
