@@ -145,9 +145,9 @@ if __name__ == '__main__':
     trainer = Trainer(network, optimizer, loss)
     validator = Validator(network, loss)
 
-    # train_main(epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype,
-    #            args.output_path)
-    # network.summary()
+    train_main(epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype,
+               args.output_path)
+    network.summary()
 
     (x_train, y_train), (x_test, y_test) = get_num_dataset()
     x_train = x_train[..., tf.newaxis]
