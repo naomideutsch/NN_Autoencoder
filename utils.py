@@ -26,7 +26,10 @@ class BinaryCrossEntropy(Loss):
         self.n = n
 
     def call(self, x, pred):
-        return MSE(x,pred)
+        cross_entropy = -1. * x * tf.math.log(pred) - (1. - x) * tf.math.log(1. - pred)
+        loss = tf.reduce_mean(cross_entropy)
+
+        return loss
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~     Plotting      ~~~~#

@@ -24,12 +24,12 @@ def get_args():
     parser.add_argument('--optimizer', '-opt', default="adam", help='optimizer  type')
     parser.add_argument('--ts', type=int, default=None, help='train size')
 
-    parser.add_argument('--loss', default="mse", help='the loss function type')
+    parser.add_argument('--loss', default="cross_entropy", help='the loss function type')
 
     parser.add_argument('--plot_freq', '-pf', type=int, default=1875,
                         help='iteration check point to the plot')
 
-    parser.add_argument('--output_path', default=None, help='The path to keep the output')
+    parser.add_argument('--output_path', default=os.getcwd(), help='The path to keep the output')
 
     return parser.parse_args()
 
@@ -139,9 +139,12 @@ if __name__ == '__main__':
     trainer = Trainer(network, optimizer, loss)
     validator = Validator(network, loss)
 
-    train_main(epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype, args.output_path)
+    train_main(epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype,
+               args.output_path)
     network.summary()
 
     (x_train, y_train), (x_test, y_test) = get_num_dataset()
+    x_train = x_train[..., tf.newaxis, tf.newaxis]
+    x_test = x_test[..., tf.newaxis, tf.newaxis]
 
     visualize_latent(network, x_train, y_train, "title", args.output_path)
