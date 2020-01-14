@@ -37,9 +37,15 @@ class Validator:
 
     def get_step(self):
         @tf.function
-        def test_step(images, labels):
-            predictions = self.model(images)
-            t_loss = self.loss(images, predictions)
+        def test_step(dest, to_predict):
+            predictions = self.model(to_predict)
+            if self.loss_with_latent:
+                latent_vec = self.model.encode(to_predict)
+                t_loss = self.loss(dest, predictions, latent_vec)
+            else:
+                t_loss = self.loss(dest, predictions)
+
+
             self.test_loss(t_loss)
 
         return test_step

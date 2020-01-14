@@ -54,15 +54,18 @@ def get_optimizer(optimizer_type):
     return None
 
 
-def get_loss(loss_type, sump_num):
+def get_loss(loss_type, sump_num, with_reg=False, alpha=0):
+    loss = None
     if loss_type == "cross_entropy":
-        return BinaryCrossEntropy(sump_num), False
+        loss = BinaryCrossEntropy(sump_num)
 
     if loss_type == "mse":
-        return MSE, False
+        loss = MSE
 
+    if with_reg:
+        loss = add_density_regularization(loss, alpha)
 
-    return None
+    return loss, with_reg
 
 
 def get_denoise_dataset(batches_num, p=0.2):
