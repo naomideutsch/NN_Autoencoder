@@ -27,6 +27,8 @@ def get_args():
 
     parser.add_argument('--loss', default="cross_entropy", help='the loss function type')
 
+
+
     parser.add_argument('--plot_freq', '-pf', type=int, default=1875,
                         help='iteration check point to the plot')
 
@@ -54,11 +56,10 @@ def get_optimizer(optimizer_type):
 
 def get_loss(loss_type, sump_num):
     if loss_type == "cross_entropy":
-        return BinaryCrossEntropy(sump_num)
+        return BinaryCrossEntropy(sump_num), False
 
     if loss_type == "mse":
-        return MSE
-
+        return MSE, False
 
 
     return None
@@ -168,7 +169,7 @@ if __name__ == '__main__':
     batches = args.batches
     epochs = args.epochs
     optimizer = get_optimizer(args.optimizer)
-    loss = get_loss(args.loss, args.batches)
+    loss, loss_with_latent = get_loss(args.loss, args.batches)
 
     dataset_builder = get_dataset if args.dstype == "num" else get_denoise_dataset
     train_ds, test_ds = dataset_builder(batches, p=args.percent)
@@ -176,12 +177,12 @@ if __name__ == '__main__':
 
     network = get_network(args.nntype)
 
-    trainer = Trainer(network, optimizer, loss)
-    validator = Validator(network, loss)
+    trainer = Trainer(network, optimizer, loss, loss_with_latent)
+    validator = Validator(network, loss, loss_with_latent)
 
-    # train_main(epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype,
-    #            args.output_path)
-    # network.summary()
+    train_main(epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype,
+               args.output_path)
+    network.summary()
     #
     (x_train, y_train), (x_test, y_test) = get_num_dataset()
     x_train = x_train[..., tf.newaxis]
@@ -194,11 +195,11 @@ if __name__ == '__main__':
 
     vis_title = "MNIST_claster_{}".format(params_title)
     im_title = "reconstruct_{}".format(params_title)
-    #
-    #
-    # visualize_latent(network, x_test, y_test, vis_title,
-    #                  args.output_path,
-    #                  args.max_visualization, args.embed_tech)
+
+
+    visualize_latent(network, x_test, y_test, vis_title,
+                     args.output_path,
+                     args.max_visualization, args.embed_tech)
 
     display_reconstruction(network, x_test[0], im_title, args.output_path)
 

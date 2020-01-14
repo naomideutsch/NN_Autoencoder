@@ -2,18 +2,23 @@ import tensorflow as tf
 
 
 class Trainer:
-    def __init__(self, model, optimizer, loss):
+    def __init__(self, model, optimizer, loss, loss_with_latent=False):
         self.model = model
         self.optimizer = optimizer
         self.loss = loss
         self.train_loss = tf.keras.metrics.Mean(name='train_loss')
+        self.loss_with_latent = loss_with_latent
 
     def get_step(self):
         @tf.function
         def train_step(dest, to_predict):
             with tf.GradientTape() as tape:
                 predictions = self.model(to_predict)
-                loss = self.loss(dest, predictions)
+                if self.loss_with_latent:
+                    latent_vec = self.model.encode(to_predict)
+                    loss = self.loss(dest, predictions, latent_vec)
+                else:
+                    loss = self.loss(dest, predictions)
             gradients = tape.gradient(loss, self.model.trainable_variables)
             self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
 
@@ -23,10 +28,12 @@ class Trainer:
 
 
 class Validator:
-    def __init__(self, model, loss):
+    def __init__(self, model, loss, loss_with_latent=False):
         self.model = model
         self.loss = loss
         self.test_loss = tf.keras.metrics.Mean(name='test_loss')
+        self.loss_with_latent = loss_with_latent
+
 
     def get_step(self):
         @tf.function

@@ -31,6 +31,10 @@ class BinaryCrossEntropy(Loss):
 
         return loss
 
+def add_density_regularization(loss, latent_vec, alpha):
+    return loss + alpha * tf.reduce_sum(tf.math.abs(latent_vec))
+
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~     Plotting      ~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
