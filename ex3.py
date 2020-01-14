@@ -153,7 +153,7 @@ if __name__ == '__main__':
     x_train = x_train[..., tf.newaxis]
     x_test = x_test[..., tf.newaxis]
 
-    visualize_latent(network, x_test, y_test, "MNIST_claster_with_{}_and_loss_{}".format(
-        args.embed_tech, args.loss),
+    visualize_latent(network, x_test, y_test,
+                     "MNIST_claster_with_{}_and_loss_{}".format(args.embed_tech, args.loss),
                      args.output_path,
                      args.max_visualization, args.embed_tech)
