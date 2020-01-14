@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from tensorflow.python.keras.losses import MSE
 from utils import get_object, Plotter, CategoricalPlotter, get_num_dataset, BinaryCrossEntropy
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.manifold import TSNE
 import argparse
 import tensorflow as tf
 import numpy as np
@@ -110,9 +111,13 @@ def train_main(epochs, train_ds, test_ds, trainer, validator, plot_freq, network
 def visualize_latent(ae, data, label, title, output_path, max_examples):
     categoricalPlotter = CategoricalPlotter(np.unique(label), title, output_path)
 
-    lda = LinearDiscriminantAnalysis(n_components=2)
     latent_vecs = ae.encode(data[:min(max_examples, data.shape[0])])
+    lda = LinearDiscriminantAnalysis(n_components=2)
     result = lda.fit_transform(latent_vecs, label[:min(max_examples, label.shape[0])])
+
+    tsne = TSNE(n_components=2)
+    result = tsne.fit_transform(latent_vecs)
+
 
     for i in range(result.shape[0]):
         categoricalPlotter.add(label[i], result[i, 0], result[i, 1])
