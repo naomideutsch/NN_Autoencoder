@@ -20,7 +20,7 @@ def get_args():
     parser.add_argument('--nntype', default="AE_Network", help='The type of the network')
     parser.add_argument('--dstype', default="num", help='The type of the dataset (num/denoise)')
 
-    parser.add_argument('--batches', '-bs', type=int, default=32, help='number of batches')
+    parser.add_argument('--batches', '-bs', type=int, default=4, help='number of batches')
     parser.add_argument('--epochs', '-ep', type=int, default=20, help='number of epochs')
     parser.add_argument('--optimizer', '-opt', default="adam", help='optimizer  type')
     parser.add_argument('--ts', type=int, default=None, help='train size')
@@ -85,7 +85,9 @@ def get_denoise_dataset(batches_num, p=0.2):
     # train_ds = tf.data.Dataset.from_tensor_slices(
     #     (x_train, x_train_noise)).shuffle(10000).batch(batches_num)
     # test_ds = tf.data.Dataset.from_tensor_slices((x_test, x_test_noise)).batch(batches_num)
-    return add_channel_dim(x_train, x_train_noise, x_test, x_test_noise, batches_num)
+
+    train_ds, test_ds = add_channel_dim(x_train, x_train_noise, x_test, x_test_noise, batches_num)
+    return train_ds, test_ds, x_test_noise, y_test
 
 
 def get_dataset(batches_num, *args):
@@ -98,7 +100,8 @@ def get_dataset(batches_num, *args):
     # train_ds = tf.data.Dataset.from_tensor_slices(
     #     (x_train, x_train)).shuffle(10000).batch(batches_num)
     # test_ds = tf.data.Dataset.from_tensor_slices((x_test, x_test)).batch(batches_num)
-    return add_channel_dim(x_train, x_train, x_test, x_test, batches_num)
+    train_ds, test_ds = add_channel_dim(x_train, x_train, x_test, x_test, batches_num)
+    return train_ds, test_ds, x_test, y_test
 
 
 def train_main(epochs, train_ds, test_ds, trainer, validator, plot_freq, network_type, output_path):
@@ -163,9 +166,6 @@ def display_reconstruction(model, image, title, output_path):
     plt.savefig(os.path.join(output_path, title + ".png"))
 
 
-
-
-
 if __name__ == '__main__':
     args = get_args()
     tf.keras.backend.set_floatx('float64')
@@ -175,7 +175,7 @@ if __name__ == '__main__':
     loss, loss_with_latent = get_loss(args.loss, args.batches)
 
     dataset_builder = get_dataset if args.dstype == "num" else get_denoise_dataset
-    train_ds, test_ds = dataset_builder(args.batches, args.percent)
+    train_ds, test_ds, x_test, y_test = dataset_builder(args.batches, args.percent)
     print("dataset is ready")
 
     network = get_network(args.nntype)
@@ -187,11 +187,10 @@ if __name__ == '__main__':
                args.output_path)
     network.summary()
 
-    (x_train, y_train), (x_test, y_test) = get_num_dataset()
-    x_train = x_train[..., tf.newaxis]
-    x_test = x_test[..., tf.newaxis]
-    params_title = "[method={},loss={},ds_name={}".format(args.embed_tech,
-                                                                         args.loss, args.dstype)
+    # (x_train, y_train), (x_test, y_test) = get_num_dataset()
+    # x_train = x_train[..., tf.newaxis]
+    # x_test = x_test[..., tf.newaxis]
+    params_title = "[method={},loss={},ds_name={}".format(args.embed_tech, args.loss, args.dstype)
     if args.dstype == "denoise":
         params_title += ",p={}".format(args.percent)
     params_title += "]"
