@@ -34,24 +34,15 @@ class AE_Network(NN):
         x = self.flatten(x)
         x = self.fully_connected1(x)
         x = self.fully_connected2(x)
-
-
         return x
 
     def decode(self, x):
         x = self.fully_connected3(x)
-
         x = self.fully_connected4(x)
-
         x = self.reshape(x)
-
         x = self.conv_transpose1(x)
-
         x = self.conv_transpose2(x)
-
         return x
-
-
 
     def call(self, x):
         x = self.encode(x)

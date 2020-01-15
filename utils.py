@@ -11,6 +11,8 @@ from PIL import Image
 import sys
 import os
 
+from tensorflow.python import keras
+
 from tensorflow.python.keras.layers import Flatten
 
 
@@ -28,11 +30,15 @@ class BinaryCrossEntropy(Loss):
     def call(self, x, pred):
         cross_entropy = -1. * x * tf.math.log(pred) - (1. - x) * tf.math.log(1. - pred)
         loss = tf.reduce_mean(cross_entropy)
-
         return loss
 
-def add_density_regularization(loss, alpha):
-    return lambda dest, pred, latent_vec: loss(dest, pred) + alpha * tf.reduce_sum(tf.math.abs(latent_vec))
+def add_density_regularization(loss, alpha, batches_num):
+
+    def foo(dest, pred, latent_vec):
+        return loss(dest, pred) + keras.regularizers.l1(alpha)(latent_vec)
+
+    return foo
+
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~#

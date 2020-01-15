@@ -52,17 +52,18 @@ def get_optimizer(optimizer_type):
     return None
 
 
-def get_loss(loss_type, sump_num, with_reg=False, alpha=1.0):
+def get_loss(loss_type, samp_num, with_reg=False, alpha=1.0):
     loss = None
 
     if loss_type == "cross_entropy":
-        loss = BinaryCrossEntropy(sump_num)
+        loss = BinaryCrossEntropy(samp_num)
 
     if loss_type == "mse":
         loss = MSE
 
     if with_reg:
-        loss = add_density_regularization(loss, alpha)
+        loss = add_density_regularization(loss, alpha, samp_num)
+
 
     return loss, with_reg
 
