@@ -132,7 +132,7 @@ def train_main(epochs, train_ds, test_ds, trainer, validator, plot_freq, network
 def visualize_latent(ae, data, label, title, output_path, max_examples, embed_tech):
     categorical_plotter = CategoricalPlotter(np.unique(label), title, output_path)
 
-    latent_vecs = ae.encode(data[:min(max_examples, data.shape[0])])
+    latent_vecs = ae.encode(data[:min(max_examples, data.shape[0])], True)
     if embed_tech == "lda":
         lda = LinearDiscriminantAnalysis(n_components=2)
         result = lda.fit_transform(latent_vecs, label[:min(max_examples, label.shape[0])])
