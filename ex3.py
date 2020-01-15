@@ -181,7 +181,7 @@ if __name__ == '__main__':
                args.plot_freq, args.nntype + "_[with loss={}]".format(args.loss), args.output_path)
     network.summary()
 
-    params_title = "[method={},loss={},ds_name={}".format(args.embed_tech, args.loss, args.dstype)
+    params_title = "[{},{},{}".format(args.embed_tech, args.loss, args.dstype)
     if args.dstype == "denoise":
         params_title += ",p={}".format(args.percent)
     if args.reg_flag:
