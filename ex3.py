@@ -20,7 +20,7 @@ def get_args():
     parser.add_argument('--nntype', default="AE_Network", help='The type of the network')
     parser.add_argument('--dstype', default="num", help='The type of the dataset (num/denoise)')
 
-    parser.add_argument('--batches', '-bs', type=int, default=4, help='number of batches')
+    parser.add_argument('--batches', '-bs', type=int, default=32, help='number of batches')
     parser.add_argument('--epochs', '-ep', type=int, default=20, help='number of epochs')
     parser.add_argument('--optimizer', '-opt', default="adam", help='optimizer  type')
     parser.add_argument('--ts', type=int, default=None, help='train size')
