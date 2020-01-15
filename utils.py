@@ -32,12 +32,25 @@ class BinaryCrossEntropy(Loss):
         loss = tf.reduce_mean(cross_entropy)
         return loss
 
-def add_density_regularization(loss, alpha, batches_num):
+def add_density_regularization(loss, alpha, b):
 
     def foo(dest, pred, latent_vec):
-        return loss(dest, pred) + keras.regularizers.l1(alpha)(latent_vec)
+
+        return loss(dest, pred) + alpha * tf.reduce_mean(tf.math.abs(latent_vec))
 
     return foo
+
+
+    # def foo(dest, pred, latent_vec, tape):
+    #     tf.print(dest[:,:,:,0].shape)
+    #     tf.print(latent_vec.shape)
+    #
+    #     g = tape.gradient(latent_vec, dest[:,:,:,0])
+    #     tf.print(g)
+    #     # return loss(dest, pred) + keras.regularizers.l2(alpha)(g)
+    #     return loss(dest, pred)
+    #
+    # return foo
 
 
 

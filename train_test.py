@@ -12,7 +12,7 @@ class Trainer:
     def get_step(self):
         @tf.function
         def train_step(dest, to_predict):
-            with tf.GradientTape() as tape:
+            with tf.GradientTape(persistent=True) as tape:
                 predictions = self.model(to_predict)
                 if self.loss_with_latent:
                     latent_vec = self.model.encode(to_predict)
