@@ -119,6 +119,8 @@ def train_main(epochs, train_ds, test_ds, trainer, validator, plot_freq, network
 
                     loss_plotter.add("train", train_counter,
                                      tf.cast(trainer.train_loss.result(), tf.float64).numpy())
+                    loss_plotter.add("test", train_counter,
+                                     tf.cast(validator.test_loss.result(), tf.float64).numpy())
 
                     validator.test_loss.reset_states()
 
