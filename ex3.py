@@ -35,7 +35,7 @@ def get_args():
     parser.add_argument('--embed_tech', default="lda", help='lda/tsne')
     parser.add_argument('--percent', default=0.2, type=float, help='percent of noise in image')
     parser.add_argument('--reg_flag', default=False, action='store_true', help='add reg or not')
-    parser.add_argument('--reg_num', default=1, type=int, help='regularization num')
+    parser.add_argument('--reg_num', default=1.0, type=float, help='regularization num')
 
     return parser.parse_args()
 
@@ -52,7 +52,7 @@ def get_optimizer(optimizer_type):
     return None
 
 
-def get_loss(loss_type, sump_num, with_reg=False, alpha=1):
+def get_loss(loss_type, sump_num, with_reg=False, alpha=1.0):
     loss = None
 
     if loss_type == "cross_entropy":
