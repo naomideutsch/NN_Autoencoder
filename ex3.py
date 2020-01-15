@@ -62,7 +62,7 @@ def get_loss(loss_type, samp_num, with_reg=False, alpha=1.0):
         loss = MSE
 
     if with_reg:
-        loss = add_density_regularization(loss, alpha, samp_num)
+        loss = add_density_regularization(loss, alpha)
 
 
     return loss, with_reg
