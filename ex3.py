@@ -34,6 +34,8 @@ def get_args():
     parser.add_argument('--max_visualization', default=2000, type=int, help='number of samples to visualize')
     parser.add_argument('--embed_tech', default="lda", help='lda/tsne')
     parser.add_argument('--percent', default=0.2, type=float, help='percent of noise in image')
+    parser.add_argument('--reg_flag', default=False, action='store_true', help='add reg or not')
+    parser.add_argument('--reg_num', default=0, type=int, help='regularization num')
 
     return parser.parse_args()
 
@@ -172,7 +174,7 @@ if __name__ == '__main__':
     # batches = args.batches
     # epochs = args.epochs
     optimizer = get_optimizer(args.optimizer)
-    loss, loss_with_latent = get_loss(args.loss, args.batches)
+    loss, loss_with_latent = get_loss(args.loss, args.batches, args.reg_flag, args.reg_num)
 
     dataset_builder = get_dataset if args.dstype == "num" else get_denoise_dataset
     train_ds, test_ds, x_test, y_test = dataset_builder(args.batches, args.percent)
@@ -187,9 +189,6 @@ if __name__ == '__main__':
                args.output_path)
     network.summary()
 
-    # (x_train, y_train), (x_test, y_test) = get_num_dataset()
-    # x_train = x_train[..., tf.newaxis]
-    # x_test = x_test[..., tf.newaxis]
     params_title = "[method={},loss={},ds_name={}".format(args.embed_tech, args.loss, args.dstype)
     if args.dstype == "denoise":
         params_title += ",p={}".format(args.percent)
