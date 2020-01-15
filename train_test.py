@@ -34,7 +34,6 @@ class Validator:
         self.test_loss = tf.keras.metrics.Mean(name='test_loss')
         self.loss_with_latent = loss_with_latent
 
-
     def get_step(self):
         @tf.function
         def test_step(dest, to_predict):
@@ -44,8 +43,6 @@ class Validator:
                 t_loss = self.loss(dest, predictions, latent_vec)
             else:
                 t_loss = self.loss(dest, predictions)
-
-
             self.test_loss(t_loss)
 
         return test_step

@@ -24,10 +24,7 @@ def get_args():
     parser.add_argument('--epochs', '-ep', type=int, default=20, help='number of epochs')
     parser.add_argument('--optimizer', '-opt', default="adam", help='optimizer  type')
     parser.add_argument('--ts', type=int, default=None, help='train size')
-
     parser.add_argument('--loss', default="cross_entropy", help='the loss function type')
-
-
 
     parser.add_argument('--plot_freq', '-pf', type=int, default=1875,
                         help='iteration check point to the plot')
@@ -37,7 +34,6 @@ def get_args():
     parser.add_argument('--max_visualization', default=2000, type=int, help='number of samples to visualize')
     parser.add_argument('--embed_tech', default="lda", help='lda/tsne')
     parser.add_argument('--percent', default=0.2, type=float, help='percent of noise in image')
-
 
     return parser.parse_args()
 
@@ -68,23 +64,28 @@ def get_loss(loss_type, sump_num, with_reg=False, alpha=0):
     return loss, with_reg
 
 
+def add_channel_dim(train_1, train_2, test_1, test_2, batches_num):
+
+    train_ds = tf.data.Dataset.from_tensor_slices((train_1, train_2)).shuffle(10000).batch(batches_num)
+    test_ds = tf.data.Dataset.from_tensor_slices((test_1, test_2)).batch(batches_num)
+    return train_ds, test_ds
+
+
 def get_denoise_dataset(batches_num, p=0.2):
     (x_train, y_train), (x_test, y_test) = get_num_dataset()
     x_denoise = get_denoising_dataset([x_train, x_test], p)
     x_train_noise, x_test_noise = x_denoise[0], x_denoise[1]
-
 
     x_train = x_train[..., tf.newaxis]
     x_test = x_test[..., tf.newaxis]
     x_train_noise = x_train_noise[..., tf.newaxis]
     x_test_noise = x_test_noise[..., tf.newaxis]
 
-    # Add a channels dimension
-    train_ds = tf.data.Dataset.from_tensor_slices(
-        (x_train, x_train_noise)).shuffle(10000).batch(batches_num)
-    test_ds = tf.data.Dataset.from_tensor_slices((x_test, x_test_noise)).batch(batches_num)
-    return train_ds, test_ds
-
+    # # Add a channels dimension
+    # train_ds = tf.data.Dataset.from_tensor_slices(
+    #     (x_train, x_train_noise)).shuffle(10000).batch(batches_num)
+    # test_ds = tf.data.Dataset.from_tensor_slices((x_test, x_test_noise)).batch(batches_num)
+    return add_channel_dim(x_train, x_train_noise, x_test, x_test_noise, batches_num)
 
 
 def get_dataset(batches_num, *args):
@@ -93,11 +94,11 @@ def get_dataset(batches_num, *args):
     x_train = x_train[..., tf.newaxis]
     x_test = x_test[..., tf.newaxis]
 
-    # Add a channels dimension
-    train_ds = tf.data.Dataset.from_tensor_slices(
-        (x_train, x_train)).shuffle(10000).batch(batches_num)
-    test_ds = tf.data.Dataset.from_tensor_slices((x_test, x_test)).batch(batches_num)
-    return train_ds, test_ds
+    # # Add a channels dimension
+    # train_ds = tf.data.Dataset.from_tensor_slices(
+    #     (x_train, x_train)).shuffle(10000).batch(batches_num)
+    # test_ds = tf.data.Dataset.from_tensor_slices((x_test, x_test)).batch(batches_num)
+    return add_channel_dim(x_train, x_train, x_test, x_test, batches_num)
 
 
 def train_main(epochs, train_ds, test_ds, trainer, validator, plot_freq, network_type, output_path):
@@ -132,7 +133,7 @@ def train_main(epochs, train_ds, test_ds, trainer, validator, plot_freq, network
 
 
 def visualize_latent(ae, data, label, title, output_path, max_examples, embed_tech):
-    categoricalPlotter = CategoricalPlotter(np.unique(label), title, output_path)
+    categorical_plotter = CategoricalPlotter(np.unique(label), title, output_path)
 
     latent_vecs = ae.encode(data[:min(max_examples, data.shape[0])])
     if embed_tech == "lda":
@@ -142,11 +143,10 @@ def visualize_latent(ae, data, label, title, output_path, max_examples, embed_te
         tsne = TSNE(n_components=2)
         result = tsne.fit_transform(latent_vecs)
 
-
     for i in range(result.shape[0]):
-        categoricalPlotter.add(label[i], result[i, 0], result[i, 1])
+        categorical_plotter.add(label[i], result[i, 0], result[i, 1])
 
-    categoricalPlotter.plot()
+    categorical_plotter.plot()
 
 
 def display_reconstruction(model, image, title, output_path):
@@ -169,13 +169,13 @@ def display_reconstruction(model, image, title, output_path):
 if __name__ == '__main__':
     args = get_args()
     tf.keras.backend.set_floatx('float64')
-    batches = args.batches
-    epochs = args.epochs
+    # batches = args.batches
+    # epochs = args.epochs
     optimizer = get_optimizer(args.optimizer)
     loss, loss_with_latent = get_loss(args.loss, args.batches)
 
     dataset_builder = get_dataset if args.dstype == "num" else get_denoise_dataset
-    train_ds, test_ds = dataset_builder(batches, args.percent)
+    train_ds, test_ds = dataset_builder(args.batches, args.percent)
     print("dataset is ready")
 
     network = get_network(args.nntype)
@@ -183,10 +183,10 @@ if __name__ == '__main__':
     trainer = Trainer(network, optimizer, loss, loss_with_latent)
     validator = Validator(network, loss, loss_with_latent)
 
-    train_main(epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype,
+    train_main(args.epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype,
                args.output_path)
     network.summary()
-    #
+
     (x_train, y_train), (x_test, y_test) = get_num_dataset()
     x_train = x_train[..., tf.newaxis]
     x_test = x_test[..., tf.newaxis]
@@ -199,9 +199,7 @@ if __name__ == '__main__':
     vis_title = "MNIST_claster_{}".format(params_title)
     im_title = "reconstruct_{}".format(params_title)
 
-
-    visualize_latent(network, x_test, y_test, vis_title,
-                     args.output_path,
+    visualize_latent(network, x_test, y_test, vis_title, args.output_path,
                      args.max_visualization, args.embed_tech)
 
     display_reconstruction(network, x_test[0], im_title, args.output_path)
