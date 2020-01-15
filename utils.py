@@ -42,7 +42,7 @@ def add_density_regularization(loss, alpha, b):
     def foo(dest, pred, latent_vec):
 
         return tf.cast(loss(dest, pred), dtype=tf.dtypes.float32) + \
-               alpha * kl_divergence(0.05,
+               alpha * kl_divergence(0.1,
                                      tf.reduce_mean(tf.math.abs(tf.cast(latent_vec,
                                                                         dtype=tf.dtypes.float32))))
 
