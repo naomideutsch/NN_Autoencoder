@@ -32,12 +32,19 @@ class BinaryCrossEntropy(Loss):
         loss = tf.reduce_mean(cross_entropy)
         return loss
 
+def kl_divergence(p, p_hat):
+    # tf.print(p_hat)
+    # return 1
+    return p * tf.math.log(p) - p * tf.math.log(p_hat) + (1 - p) * tf.math.log(1 - p) - (1 - p) * tf.math.log(1 - p_hat)
+
 def add_density_regularization(loss, alpha, b):
 
     def foo(dest, pred, latent_vec):
 
-        return KLDivergence(0.05, loss(dest, pred) + alpha * tf.reduce_mean(tf.math.abs(
-            latent_vec)))
+        return tf.cast(loss(dest, pred), dtype=tf.dtypes.float32) + \
+               alpha * kl_divergence(0.05,
+                                     tf.reduce_mean(tf.math.abs(tf.cast(latent_vec,
+                                                                        dtype=tf.dtypes.float32))))
 
     return foo
 
