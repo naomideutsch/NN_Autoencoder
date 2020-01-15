@@ -4,7 +4,7 @@ import inspect
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-from tensorflow.python.keras.losses import Loss, SparseCategoricalCrossentropy, MSE
+from tensorflow.python.keras.losses import Loss, SparseCategoricalCrossentropy, MSE, KLDivergence
 import tensorflow as tf
 import numpy as np
 from PIL import Image
@@ -36,7 +36,8 @@ def add_density_regularization(loss, alpha, b):
 
     def foo(dest, pred, latent_vec):
 
-        return loss(dest, pred) + alpha * tf.reduce_mean(tf.math.abs(latent_vec))
+        return KLDivergence(0.05, loss(dest, pred) + alpha * tf.reduce_mean(tf.math.abs(
+            latent_vec)))
 
     return foo
 
