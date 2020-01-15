@@ -52,8 +52,9 @@ def get_optimizer(optimizer_type):
     return None
 
 
-def get_loss(loss_type, sump_num, with_reg=False, alpha=0):
+def get_loss(loss_type, sump_num, with_reg=False, alpha=1):
     loss = None
+
     if loss_type == "cross_entropy":
         loss = BinaryCrossEntropy(sump_num)
 
@@ -67,7 +68,6 @@ def get_loss(loss_type, sump_num, with_reg=False, alpha=0):
 
 
 def add_channel_dim(train_1, train_2, test_1, test_2, batches_num):
-
     train_ds = tf.data.Dataset.from_tensor_slices((train_1, train_2)).shuffle(10000).batch(batches_num)
     test_ds = tf.data.Dataset.from_tensor_slices((test_1, test_2)).batch(batches_num)
     return train_ds, test_ds
@@ -83,11 +83,6 @@ def get_denoise_dataset(batches_num, p=0.2):
     x_train_noise = x_train_noise[..., tf.newaxis]
     x_test_noise = x_test_noise[..., tf.newaxis]
 
-    # # Add a channels dimension
-    # train_ds = tf.data.Dataset.from_tensor_slices(
-    #     (x_train, x_train_noise)).shuffle(10000).batch(batches_num)
-    # test_ds = tf.data.Dataset.from_tensor_slices((x_test, x_test_noise)).batch(batches_num)
-
     train_ds, test_ds = add_channel_dim(x_train, x_train_noise, x_test, x_test_noise, batches_num)
     return train_ds, test_ds, x_test_noise, y_test
 
@@ -98,10 +93,6 @@ def get_dataset(batches_num, *args):
     x_train = x_train[..., tf.newaxis]
     x_test = x_test[..., tf.newaxis]
 
-    # # Add a channels dimension
-    # train_ds = tf.data.Dataset.from_tensor_slices(
-    #     (x_train, x_train)).shuffle(10000).batch(batches_num)
-    # test_ds = tf.data.Dataset.from_tensor_slices((x_test, x_test)).batch(batches_num)
     train_ds, test_ds = add_channel_dim(x_train, x_train, x_test, x_test, batches_num)
     return train_ds, test_ds, x_test, y_test
 
@@ -155,7 +146,7 @@ def visualize_latent(ae, data, label, title, output_path, max_examples, embed_te
 
 
 def display_reconstruction(model, image, title, output_path):
-    fig, (ax1, ax2) = plt.subplots(1,2)
+    fig, (ax1, ax2) = plt.subplots(1, 2)
     ax1.imshow(image[:, :, 0])
     ax1.set_title("original")
     net_input = image[tf.newaxis, ...]
@@ -171,8 +162,6 @@ def display_reconstruction(model, image, title, output_path):
 if __name__ == '__main__':
     args = get_args()
     tf.keras.backend.set_floatx('float64')
-    # batches = args.batches
-    # epochs = args.epochs
     optimizer = get_optimizer(args.optimizer)
     loss, loss_with_latent = get_loss(args.loss, args.batches, args.reg_flag, args.reg_num)
 
@@ -185,13 +174,15 @@ if __name__ == '__main__':
     trainer = Trainer(network, optimizer, loss, loss_with_latent)
     validator = Validator(network, loss, loss_with_latent)
 
-    train_main(args.epochs, train_ds, test_ds, trainer, validator, args.plot_freq, args.nntype,
-               args.output_path)
+    train_main(args.epochs, train_ds, test_ds, trainer, validator,
+               args.plot_freq, args.nntype, args.output_path)
     network.summary()
 
     params_title = "[method={},loss={},ds_name={}".format(args.embed_tech, args.loss, args.dstype)
     if args.dstype == "denoise":
         params_title += ",p={}".format(args.percent)
+    if args.reg_flag:
+        params_title += ",reg={}".format(args.reg_num)
     params_title += "]"
 
     vis_title = "MNIST_claster_{}".format(params_title)
