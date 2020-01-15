@@ -100,7 +100,7 @@ def get_dataset(batches_num, *args):
 
 def train_main(epochs, train_ds, test_ds, trainer, validator, plot_freq, network_type, output_path):
 
-    loss_plotter = Plotter(['train'], network_type, os.path.join(output_path, "Loss"))
+    loss_plotter = Plotter(['train'], network_type , os.path.join(output_path, "Loss"))
     try:
         train_counter = 0
         train_step = trainer.get_step()
@@ -178,7 +178,7 @@ if __name__ == '__main__':
     validator = Validator(network, loss, loss_with_latent)
 
     train_main(args.epochs, train_ds, test_ds, trainer, validator,
-               args.plot_freq, args.nntype, args.output_path)
+               args.plot_freq, args.nntype + "_[with loss={}]".format(args.loss), args.output_path)
     network.summary()
 
     params_title = "[method={},loss={},ds_name={}".format(args.embed_tech, args.loss, args.dstype)
