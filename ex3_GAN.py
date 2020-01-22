@@ -1,6 +1,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from tensorflow.python.keras.losses import MSE
+from tensorflow.python.keras.losses import MSE, BinaryCrossentropy
+
+
 from utils import *
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.manifold import TSNE
@@ -15,26 +17,27 @@ from Networks.Discrimnator import Discrimnator
 from Networks.Gan import Gan
 
 
-from train_test import Trainer, Validator
+from train_test import GanTrainer
 
 import matplotlib.pyplot as plt
+from tensorflow.keras.backend import set_floatx
 
-
+set_floatx("float32")
 def get_args():
     parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('--nntype', default="AE_Network", help='The type of the network')
-    parser.add_argument('--dstype', default="num", help='The type of the dataset')
+    # parser.add_argument('--nntype', default="AE_Network", help='The type of the network')
+    # parser.add_argument('--dstype', default="num", help='The type of the dataset')
 
     parser.add_argument('--batches', '-bs', type=int, default=32, help='number of batches')
-    parser.add_argument('--epochs', '-ep', type=int, default=20, help='number of epochs')
-    parser.add_argument('--latent_vec_size', '-z', type=int, default=10, help='The size of z of '
+    parser.add_argument('--iterations', '-iter', type=int, default=20000, help='number of iterations')
+    parser.add_argument('--latent_vec_size', '-z', type=int, default=100, help='The size of z of '
                                                                               'the generator')
 
 
     parser.add_argument('--optimizer', '-opt', default="adam", help='optimizer  type')
-    parser.add_argument('--loss', default="cross_entropy", help='the loss function type')
+    # parser.add_argument('--loss', default="cross_entropy", help='the loss function type')
 
-    parser.add_argument('--plot_freq', '-pf', type=int, default=1875,
+    parser.add_argument('--plot_freq', '-pf', type=int, default=500,
                         help='iteration check point to the plot')
 
     parser.add_argument('--output_path', default=os.getcwd(), help='The path to keep the output')
@@ -51,7 +54,7 @@ def get_network(network_type):
 
 def get_optimizer(optimizer_type):
     if optimizer_type == "adam":
-        return tf.keras.optimizers.Adam()
+        return tf.keras.optimizers.Adam(1e-4)
     return None
 
 
@@ -59,10 +62,7 @@ def get_loss(loss_type, samp_num):
     loss = None
 
     if loss_type == "cross_entropy":
-        loss = BinaryCrossEntropy(samp_num)
-
-    if loss_type == "mse":
-        loss = MSE
+        loss = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
     return loss
 
@@ -80,43 +80,104 @@ def get_dataset(batches_num):
 
     return x_train
 
+def generate_zspace_interpolation(generator, latent_vec_size, output_path, interplate_images):
+    fake_vec1 = np.random.normal(0, 1, (1, latent_vec_size))
+    fake_vec2 = np.random.normal(0, 1, (1, latent_vec_size))
 
-def train_main(args, x_train, plot_freq, output_path, generator,
-               discriminator, gan):
-    half_batch = int(np.floor(args.batches/2))
+    outputs = []
+
+    alphas = np.linspace(0, 1, num=interplate_images)
+    for a in alphas:
+        outputs.append(generator(a*fake_vec1 + (1-a)*fake_vec2, training=False))
+
+    fig, axs = plt.subplots(1, interplate_images)
+    for i in range(interplate_images):
+        axs[i].imshow(outputs[i][0, :, :, 0]* 127.5 + 127.5, cmap='gray')
+        axs[i].set_title("a={}".format(alphas[i]))
+    title = "z_space_interpolation"
+    fig.suptitle(title)
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
+    plt.savefig(os.path.join(output_path, title + ".png"))
+
+
+
+
+def generate_sample(generator, latent_vec_size, output_dir):
+    fake_vec = np.random.normal(0, 1, (1, latent_vec_size))
+    output = generator(fake_vec, training=False)
+
+    plt.figure()
+    plt.imshow(output[0,:,:,0]* 127.5 + 127.5, cmap='gray')
+
+    title = "Generator_output"
+
+    plt.title(title)
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+    plt.savefig(os.path.join(output_dir, title + ".png"))
+
+
+
+
+
+def train_main(args, train_ds, plot_freq, output_path, generator,
+               discriminator):
+
     optimizer = get_optimizer(args.optimizer)
-    loss = get_loss(args.loss, args.batches)
-
-    generator_trainer = Trainer(generator, optimizer, loss)
-    discriminator_trainer = Trainer(discriminator, optimizer, loss)
-    gan_trainer = Trainer(gan, optimizer, loss)
+    loss = get_loss("cross_entropy", args.batches)
+    trainer = GanTrainer(generator, discriminator, optimizer, optimizer, loss, loss)
 
     generator_plotter = Plotter(['train'], "generator", os.path.join(output_path, "Loss"))
     discriminator_plotter = Plotter(['train'], "discriminator", os.path.join(output_path, "Loss"))
-    gan_plotter = Plotter(['train'], "gan", os.path.join(output_path, "Loss"))
+
 
     try:
         train_counter = 0
-        generator_step = generator_trainer.get_step()
-        discriminator_step = discriminator_trainer.get_step()
-        gan_step = gan_trainer.get_step()
+        train_step = trainer.get_step()
 
-        for epoch in range(args.epochs):
-            random_idx = np.rand.randint(0, len(x_train), half_batch)
-            real_images = x_train[random_idx]
-            fake_vecs = np.random.normal(0, 1, (half_batch, args.latent_vec_size))
 
-            discriminator_step(real_images, np.one((half_batch, 1)))
-            discriminator_step(fake_vecs, np.zeros((half_batch, 1)))
+        for epoch in range(args.iterations):
+            for real_images, labels in train_ds:
+                fake_vecs = np.random.normal(0, 1, (args.batches, args.latent_vec_size))
 
-            noise = np.random.normal(0, 1, (args.batches, args.latent_vec_size))
-            gan_step(noise, np.one((half_batch, 1)))
+                train_step(real_images, fake_vecs)
+
+                if train_counter % plot_freq == 0:
+
+                    template = 'Epochs {}, Discriminator Loss: {}, Generator Loss: {}'
+                    print(template.format(epoch + 1,
+                                          trainer.disc_loss_mean.result(),
+                                          trainer.gen_loss_mean.result()))
+
+                    discriminator_plotter.add("train", train_counter,
+                                     tf.cast(trainer.disc_loss_mean.result(), tf.float32).numpy())
+                    generator_plotter.add("train", train_counter,
+                                     tf.cast(trainer.gen_loss_mean.result(), tf.float32).numpy())
+
+                train_counter += 1
+
+            trainer.disc_loss_mean.reset_states()
+            trainer.gen_loss_mean.reset_states()
+
+
+        # Reset the metrics for the next epoch
+        discriminator_plotter.plot()
+        generator_plotter.plot()
+
 
     finally:
         print("train is done")
 
 
+def get_dataset(batches_num, *args):
+    (x_train, y_train), (x_test, y_test) = get_num_dataset()
 
+    x_train = x_train[..., tf.newaxis]
+    x_test = x_test[..., tf.newaxis]
+
+    train_ds, test_ds = add_channel_dim(x_train, x_train, x_test, x_test, batches_num)
+    return train_ds, test_ds, x_test, y_test
 
 
 
@@ -125,14 +186,20 @@ if __name__ == '__main__':
     tf.keras.backend.set_floatx('float64')
 
 
-    x_train = get_dataset(args.batches)
+    train_ds, test_ds, x_test, y_test = get_dataset(args.batches)
 
     generator = Generator()
     discriminator = Discrimnator()
-    gan = Gan(generator, discriminator)
 
-    train_main(args, x_train, args.plot_freq,
-               args.output_path, generator,discriminator, gan)
+    train_main(args, train_ds, args.plot_freq,
+               args.output_path, generator,discriminator)
+
+    generate_sample(generator, args.latent_vec_size, args.output_path)
+    generate_zspace_interpolation(generator, args.latent_vec_size, args.output_path, 5)
+
+
+
+
 
 
 

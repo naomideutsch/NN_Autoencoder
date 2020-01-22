@@ -37,7 +37,9 @@ class AE_Network(NN):
         x = self.fully_connected1(x)
         x = self.fully_connected2(x)
         if sigmoid_activation:
+            print("sigmoid")
             return sigmoid(x)
+        print("relu")
         return relu(x)
 
     def decode(self, x):

@@ -16,12 +16,12 @@ class Gan(NN):
 
     def call(self, x):
 
-        self.generator.sigmoid_activation = False
-        self.set_model_trainable_status(self.discriminator, False)
+        # self.generator.sigmoid_activation = False
+        # self.set_model_trainable_status(self.discriminator, False)
 
         x = self.generator(x)
-        x = self.discriminator(x)
-
-        self.set_model_trainable_status(self.discriminator, True)
-        self.generator.sigmoid_activation = True
+        # x = self.discriminator(x)
+        #
+        # self.set_model_trainable_status(self.discriminator, True)
+        # self.generator.sigmoid_activation = True
         return x
