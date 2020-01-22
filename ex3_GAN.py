@@ -107,6 +107,7 @@ def generate_image_from_list(images, images_titles, title, output_path):
         os.mkdir(output_path)
     plt.savefig(os.path.join(output_path, title + ".png"))
 
+
 def generate_sample(generator, latent_vec_size, output_dir):
     fake_vec = np.random.normal(0, 1, (1, latent_vec_size))
     output = generator(fake_vec, training=False)

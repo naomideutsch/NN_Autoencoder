@@ -33,19 +33,11 @@ class Generator(NN):
     def call(self, x):
         x = tf.cast(x, tf.float32)
         x = self.fully_connected3(x)
-
         x = self.bn1(x)
-
         x = self.fully_connected4(x)
-
         x = self.bn2(x)
-
         x = self.reshape(x)
-
         x = self.conv_transpose1(x)
-
         x = self.bn3(x)
-
         x = self.conv_transpose2(x)
-
-        return tanh(x)
+        return x
