@@ -24,7 +24,7 @@ class Generator(NN):
         self.conv_transpose1 = Conv2DTranspose(64, 4, padding="same", activation='relu', strides=2, dtype=dtype)
         self.bn3 = BatchNormalization(dtype=dtype)
 
-        self.conv_transpose2 = Conv2DTranspose(1, 4, padding="same", strides=2)
+        self.conv_transpose2 = Conv2DTranspose(1, 4, padding="same", activation='relu', strides=2)
 
         print("Generator network created")
 
