@@ -77,17 +77,17 @@ class GanTrainer:
 
                 gen_loss = self.gen_loss(tf.ones_like(fake_output), fake_output)
                 real_loss = self.disc_loss(tf.ones_like(real_output), real_output)
-                fake_loss = self.disc_loss(tf.zeros_like(real_output), real_output)
+                fake_loss = self.disc_loss(tf.zeros_like(fake_output), fake_output)
                 disc_loss = real_loss + fake_loss
 
                 self.gen_loss_mean(gen_loss)
                 self.disc_loss_mean(disc_loss)
 
-            gradients_of_generator = gen_tape.gradient(gen_loss, self.generator.trainable_variables)
             gradients_of_discriminator = disc_tape.gradient(disc_loss, self.discriminator.trainable_variables)
-
-            self.generator_optimizer.apply_gradients(zip(gradients_of_generator, self.generator.trainable_variables))
             self.discriminator_optimizer.apply_gradients(zip(gradients_of_discriminator, self.discriminator.trainable_variables))
+
+            gradients_of_generator = gen_tape.gradient(gen_loss, self.generator.trainable_variables)
+            self.generator_optimizer.apply_gradients(zip(gradients_of_generator, self.generator.trainable_variables))
         return train_step
 
 
