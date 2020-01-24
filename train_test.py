@@ -91,7 +91,6 @@ class GanTrainer:
         return train_step
 
 
-
 class GloTrainer:
     def __init__(self, generator, generator_optimizer, gen_loss):
         self.generator = generator
@@ -101,15 +100,13 @@ class GloTrainer:
 
     def get_step(self):
         @tf.function
-        def train_step(images, noise):
+        def train_step(images, latent_vecs):
 
             with tf.GradientTape() as gen_tape:
-                generated_images = self.generator(noise, training=True)
+                generated_images = self.generator(latent_vecs, training=True)
                 gen_loss = self.gen_loss(generated_images, images)
                 self.gen_loss_mean(gen_loss)
-
             gradients_of_generator = gen_tape.gradient(gen_loss, self.generator.trainable_variables)
-
             self.generator_optimizer.apply_gradients(zip(gradients_of_generator, self.generator.trainable_variables))
         return train_step
 

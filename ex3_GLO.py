@@ -17,7 +17,7 @@ from Networks.Discrimnator import Discrimnator
 from Networks.Gan import Gan
 
 
-from train_test import GanTrainer
+from train_test import GloTrainer
 
 import matplotlib.pyplot as plt
 from tensorflow.keras.backend import set_floatx
@@ -25,8 +25,6 @@ from tensorflow.keras.backend import set_floatx
 set_floatx("float32")
 def get_args():
     parser = argparse.ArgumentParser(description='Process some integers.')
-    # parser.add_argument('--nntype', default="AE_Network", help='The type of the network')
-    # parser.add_argument('--dstype', default="num", help='The type of the dataset')
 
     parser.add_argument('--batches', '-bs', type=int, default=32, help='number of batches')
     parser.add_argument('--epochs', '-ep', type=int, default=20000, help='number of epochs')
@@ -80,47 +78,47 @@ def get_dataset(batches_num):
 
     return x_train
 
-def generate_zspace_interpolation(generator, latent_vec_size, output_path, interplate_images):
-    fake_vec1 = np.random.normal(0, 1, (1, latent_vec_size))
-    fake_vec2 = np.random.normal(0, 1, (1, latent_vec_size))
-
-    outputs = []
-    titles = []
-
-    alphas = np.linspace(0, 1, num=interplate_images)
-    for a in alphas:
-        outputs.append(generator(a*fake_vec1 + (1-a)*fake_vec2, training=False))
-        titles.append("a={}".format(a))
-
-    generate_image_from_list(outputs, titles, "z_space_interpolation", output_path)
-
-
-
-def generate_image_from_list(images, images_titles, title, output_path):
-
-    fig, axs = plt.subplots(1, len(images), figsize=(20, 10))
-    for i in range(len(images)):
-        axs[i].imshow(images[i][0, :, :, 0], cmap='gray')
-        axs[i].set_title(images_titles[i])
-    fig.suptitle(title)
-    if not os.path.exists(output_path):
-        os.mkdir(output_path)
-    plt.savefig(os.path.join(output_path, title + ".png"))
-
-
-def generate_sample(generator, latent_vec_size, output_dir):
-    fake_vec = np.random.normal(0, 1, (1, latent_vec_size))
-    output = generator(fake_vec, training=False)
-
-    plt.figure()
-    plt.imshow(output[0,:,:,0], cmap='gray')
-
-    title = "Generator_output"
-
-    plt.title(title)
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
-    plt.savefig(os.path.join(output_dir, title + ".png"))
+# def generate_zspace_interpolation(generator, latent_vec_size, output_path, interplate_images):
+#     fake_vec1 = np.random.normal(0, 1, (1, latent_vec_size))
+#     fake_vec2 = np.random.normal(0, 1, (1, latent_vec_size))
+#
+#     outputs = []
+#     titles = []
+#
+#     alphas = np.linspace(0, 1, num=interplate_images)
+#     for a in alphas:
+#         outputs.append(generator(a*fake_vec1 + (1-a)*fake_vec2, training=False))
+#         titles.append("a={}".format(a))
+#
+#     generate_image_from_list(outputs, titles, "z_space_interpolation", output_path)
+#
+#
+#
+# def generate_image_from_list(images, images_titles, title, output_path):
+#
+#     fig, axs = plt.subplots(1, len(images), figsize=(20, 10))
+#     for i in range(len(images)):
+#         axs[i].imshow(images[i][0, :, :, 0], cmap='gray')
+#         axs[i].set_title(images_titles[i])
+#     fig.suptitle(title)
+#     if not os.path.exists(output_path):
+#         os.mkdir(output_path)
+#     plt.savefig(os.path.join(output_path, title + ".png"))
+#
+#
+# def generate_sample(generator, latent_vec_size, output_dir):
+#     fake_vec = np.random.normal(0, 1, (1, latent_vec_size))
+#     output = generator(fake_vec, training=False)
+#
+#     plt.figure()
+#     plt.imshow(output[0,:,:,0], cmap='gray')
+#
+#     title = "Generator_output"
+#
+#     plt.title(title)
+#     if not os.path.exists(output_dir):
+#         os.mkdir(output_dir)
+#     plt.savefig(os.path.join(output_dir, title + ".png"))
 
 
 def train_main(args, train_ds, plot_freq, output_path, generator):
@@ -138,36 +136,36 @@ def train_main(args, train_ds, plot_freq, output_path, generator):
     try:
         train_counter = 0
         train_step = trainer.get_step()
-
-        for epoch in range(args.epochs):
-            for real_images, labels in train_ds:
-                train_step(real_images, latent_vecs)
-                if train_counter % plot_freq == 0:
-
-                    template = 'Epochs {}, Discriminator Loss: {}, Generator Loss: {}'
-                    print(template.format(epoch + 1,
-                                          trainer.disc_loss_mean.result(),
-                                          trainer.gen_loss_mean.result()))
-
-                    generator_plotter.add("train", train_counter,
-                                     tf.cast(trainer.gen_loss_mean.result(), tf.float32).numpy())
-
-                train_counter += 1
-
-            trainer.gen_loss_mean.reset_states()
-
-            # new generator image
-            fake_vec = np.random.normal(0, 1, (1, args.latent_vec_size))
-            output = generator(fake_vec, training=False)
-            output_for_epochs.append(output)
-            titles.append("epoch={}".format(epoch))
-
-        if args.epochs > 1:
-            generate_image_from_list(output_for_epochs, titles, "generator_outputs_for_epochs", output_path)
-
-
-        # Reset the metrics for the next epoch
-        generator_plotter.plot()
+        #
+        # for epoch in range(args.epochs):
+        #     for real_images, labels in train_ds:
+        #         train_step(real_images, latent_vecs)
+        #         if train_counter % plot_freq == 0:
+        #
+        #             template = 'Epochs {}, Discriminator Loss: {}, Generator Loss: {}'
+        #             print(template.format(epoch + 1,
+        #                                   trainer.disc_loss_mean.result(),
+        #                                   trainer.gen_loss_mean.result()))
+        #
+        #             generator_plotter.add("train", train_counter,
+        #                              tf.cast(trainer.gen_loss_mean.result(), tf.float32).numpy())
+        #
+        #         train_counter += 1
+        #
+        #     trainer.gen_loss_mean.reset_states()
+        #
+        #     # new generator image
+        #     fake_vec = np.random.normal(0, 1, (1, args.latent_vec_size))
+        #     output = generator(fake_vec, training=False)
+        #     output_for_epochs.append(output)
+        #     titles.append("epoch={}".format(epoch))
+        #
+        # if args.epochs > 1:
+        #     generate_image_from_list(output_for_epochs, titles, "generator_outputs_for_epochs", output_path)
+        #
+        #
+        # # Reset the metrics for the next epoch
+        # generator_plotter.plot()
 
 
     finally:
