@@ -95,9 +95,11 @@ class GanTrainer:
 
 
 class GloTrainer:
-    def __init__(self, decoder, optimizer, loss):
+    def __init__(self, decoder, model_optimizer, zspace_optimizer,  loss, ds_size, latent_vec_size):
         self.decoder = decoder
-        self.generator_optimizer = optimizer
+        self.model_optimizer = model_optimizer
+        self.zspace_optimizer = zspace_optimizer
+
         self.loss = loss
         self.model_loss_mean = tf.keras.metrics.Mean(name='train_loss')
         self.z_space_loss_mean = tf.keras.metrics.Mean(name='train_loss')
@@ -105,24 +107,26 @@ class GloTrainer:
 
     def get_step(self):
         @tf.function
-        def train_step(images, z_space_vecs, start, end):
-            relevant_z_vecs = z_space_vecs[start: end]
+        def train_step(images, relevant_z_vecs):
 
             with tf.GradientTape() as dec_tape:
                 generated_images = self.decoder(relevant_z_vecs, training=True)
                 dec_loss = self.loss(generated_images, images)
                 self.model_loss_mean(dec_loss)
-            self.last_gradients = dec_tape.gradient(dec_loss, self.decoder.trainable_variables)
-            self.generator_optimizer.apply_gradients(zip(self.last_gradients, self.decoder.trainable_variables))
+            model_gradient = dec_tape.gradient(dec_loss, self.decoder.trainable_variables)
+            self.model_optimizer.apply_gradients(zip(model_gradient, self.decoder.trainable_variables))
 
             with tf.GradientTape() as zspace_tape:
                 zspace_tape.watch(relevant_z_vecs)
+
                 generated_images = self.decoder(relevant_z_vecs, training=True)
                 z_space_loss = self.loss(generated_images, images)
                 self.z_space_loss_mean(z_space_loss)
 
-            z_gradients = zspace_tape.gradient(z_space_loss, relevant_z_vecs)
-            relevant_z_vecs += z_gradients * 0.001
+            zspace_gradients = tf.convert_to_tensor(zspace_tape.gradient(z_space_loss, relevant_z_vecs))
+            self.zspace_optimizer.apply_gradients(zip([zspace_gradients], [relevant_z_vecs]))
+
+            return self.last_gradients
         return train_step
 
 

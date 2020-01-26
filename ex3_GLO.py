@@ -59,11 +59,10 @@ def get_loss(loss_type):
 def get_dataset(batch_size, latent_vec_size):
     (x_train, y_train), (_, _) = tf.keras.datasets.mnist.load_data()
     train_images = x_train.reshape(x_train.shape[0], 28, 28, 1)
-    z_space_vecs = tf.Variable(np.random.normal(size=(x_train.shape[0], latent_vec_size)), trainable=True).numpy()
 
     train_images = train_images / 255.0  # Normalize the images to [-1, 1]
     train_ds = tf.data.Dataset.from_tensor_slices(train_images).shuffle(x_train.shape[0]).batch(batch_size)
-    return train_ds, z_space_vecs
+    return train_ds, x_train.shape[0]
 
 
 
@@ -95,13 +94,17 @@ def generate_sample(model, latent_vec_size, output_dir):
 
 
 
-def train_main(args, real_ds, z_space_vecs, plot_freq, output_path, model):
+def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
 
-    optimizer = get_optimizer(args.optimizer)
+    model_optimizer = get_optimizer(args.optimizer)
+    z_space_optimizer = get_optimizer(args.optimizer)
+
     loss = get_loss("MSE")
-    trainer = GloTrainer(model, optimizer, loss)
+    trainer = GloTrainer(model, model_optimizer, z_space_optimizer, loss, ds_size, args.latent_vec_size)
 
     plotter = Plotter(['model loss', 'z space Loss'], "GLO", os.path.join(output_path, "Loss"))
+
+    z_space_vecs = tf.Variable(np.random.normal(size=(ds_size, args.latent_vec_size))).numpy()
 
     try:
         batch_idx = 0
@@ -111,7 +114,11 @@ def train_main(args, real_ds, z_space_vecs, plot_freq, output_path, model):
         for epoch in range(args.epochs):
             for real_images in real_ds:
                 train_counter += 1
-                train_step(real_images, z_space_vecs, batch_idx, batch_idx + real_images.shape[0])
+                relevant_z_vecs = tf.Variable(z_space_vecs[batch_idx: batch_idx + real_images.shape[0]], trainable=True)
+
+                train_step(real_images, relevant_z_vecs)
+                z_space_vecs[batch_idx: batch_idx + real_images.shape[0]] = relevant_z_vecs.numpy()
+
 
                 if train_counter % plot_freq == 0:
 
@@ -127,7 +134,9 @@ def train_main(args, real_ds, z_space_vecs, plot_freq, output_path, model):
                 train_counter += 1
                 batch_idx += real_images.shape[0]
 
-            trainer.train_loss.reset_states()
+            trainer.model_loss_mean.reset_states()
+            trainer.z_space_loss_mean.reset_states()
+
             batch_idx = 0
 
         # Reset the metrics for the next epoch
@@ -145,11 +154,11 @@ if __name__ == '__main__':
     args = get_args()
     tf.keras.backend.set_floatx('float64')
 
-    train_ds, z_space_vecs = get_dataset(args.batches, args.latent_vec_size)
+    train_ds, dataset_size = get_dataset(args.batches, args.latent_vec_size)
     model = Decoder()
 
 
-    train_main(args, train_ds, z_space_vecs, args.plot_freq,
+    train_main(args, train_ds, dataset_size, args.plot_freq,
                args.output_path, model)
     generate_sample(model, args.latent_vec_size, args.output_path)
 
