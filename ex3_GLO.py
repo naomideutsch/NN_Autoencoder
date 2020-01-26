@@ -135,8 +135,8 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
                 relevant_z_vecs = tf.Variable(z_space_vecs[batch_idx: batch_idx + real_images.shape[0]], trainable=True)
 
                 train_step(real_images, relevant_z_vecs)
-                normalize_result, _ = tf.linalg.normalize(relevant_z_vecs.numpy(), axis=0)
-                z_space_vecs[batch_idx: batch_idx + real_images.shape[0]] = normalize_result
+                # normalize_result, _ = tf.linalg.normalize(relevant_z_vecs.numpy(), axis=0)
+                z_space_vecs[batch_idx: batch_idx + real_images.shape[0]] = relevant_z_vecs.numpy()
 
                 if train_counter % plot_freq == 0:
 
