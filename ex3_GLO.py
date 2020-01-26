@@ -119,7 +119,6 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
                 train_step(real_images, relevant_z_vecs)
                 z_space_vecs[batch_idx: batch_idx + real_images.shape[0]] = relevant_z_vecs.numpy()
 
-
                 if train_counter % plot_freq == 0:
 
                     template = 'Epochs {}, model Loss: {}, z space Loss: {}'
@@ -131,7 +130,6 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
                     plotter.add("z space Loss", train_counter,
                                               tf.cast(trainer.z_space_loss_mean.result(), tf.float32).numpy())
 
-                train_counter += 1
                 batch_idx += real_images.shape[0]
 
             trainer.model_loss_mean.reset_states()
