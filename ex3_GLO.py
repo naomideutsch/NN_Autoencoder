@@ -114,8 +114,8 @@ def visualize_latent(latent_vecs, label, title, output_path, max_examples, embed
 
 def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
 
-    model_optimizer = get_optimizer(args.optimizer, args.lr)
-    z_space_optimizer = get_optimizer(args.optimizer, args.lr)
+    model_optimizer = get_optimizer(args.optimizer, args.learning_rate)
+    z_space_optimizer = get_optimizer(args.optimizer, args.learning_rate)
 
     loss = get_loss("MSE")
     trainer = GloTrainer(model, model_optimizer, z_space_optimizer, loss, ds_size, args.latent_vec_size)
