@@ -178,7 +178,7 @@ if __name__ == '__main__':
     z_space_vecs = train_main(args, train_ds, dataset_size, args.plot_freq,
                args.output_path, model)
     generate_sample(model, z_space_vecs , args.output_path)
-    visualize_latent(z_space_vecs, label, "z_space_with_tsne", args.output_path, 2000, "tsne")
+    visualize_latent(z_space_vecs, label, "z_space_with_tsne", args.output_path, 1000, "tsne")
 
 
 
