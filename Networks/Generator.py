@@ -5,9 +5,8 @@ from tensorflow.python.keras.layers import Conv2D, Flatten, Dense, MaxPool2D, Re
 from tensorflow.python.keras.activations import sigmoid, relu, tanh
 import tensorflow as tf
 
-from tensorflow.keras.backend import set_floatx
 
-set_floatx("float32")
+
 
 
 class Generator(NN):

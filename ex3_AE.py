@@ -13,6 +13,7 @@ import itertools
 from train_test import Trainer, Validator
 
 import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 
 def get_args():
@@ -163,8 +164,9 @@ def display_reconstruction(model, image, title, output_path):
 
 
 if __name__ == '__main__':
-    args = get_args()
     tf.keras.backend.set_floatx('float64')
+
+    args = get_args()
     optimizer = get_optimizer(args.optimizer)
     loss, loss_with_latent = get_loss(args.loss, args.batches, args.reg_flag, args.reg_num)
 

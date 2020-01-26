@@ -8,6 +8,7 @@ class Trainer:
         self.loss = loss
         self.train_loss = tf.keras.metrics.Mean(name='train_loss')
         self.loss_with_latent = loss_with_latent
+        self.last_gradient = None
 
 
     def get_step(self):
@@ -18,10 +19,12 @@ class Trainer:
                 if self.loss_with_latent:
                     latent_vec = self.model.encode(to_predict)
                     loss = self.loss(dest, predictions, latent_vec)
+
                 else:
-                    loss = self.loss(dest, predictions)
-            gradients = tape.gradient(loss, self.model.trainable_variables)
-            self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
+                    loss = self.loss(tf.cast(dest, predictions.dtype), predictions)
+
+            self.last_gradient = tape.gradient(loss, self.model.trainable_variables)
+            self.optimizer.apply_gradients(zip(self.last_gradient, self.model.trainable_variables))
             self.train_loss(loss)
 
         return train_step
@@ -92,22 +95,23 @@ class GanTrainer:
 
 
 class GloTrainer:
-    def __init__(self, generator, generator_optimizer, gen_loss):
-        self.generator = generator
-        self.generator_optimizer = generator_optimizer
-        self.gen_loss = gen_loss
+    def __init__(self, decoder, optimizer, loss):
+        self.decoder = decoder
+        self.generator_optimizer = optimizer
+        self.gen_loss = loss
         self.gen_loss_mean = tf.keras.metrics.Mean(name='train_loss')
+        self.last_gradients = None
 
     def get_step(self):
         @tf.function
         def train_step(images, latent_vecs):
 
             with tf.GradientTape() as gen_tape:
-                generated_images = self.generator(latent_vecs, training=True)
+                generated_images = self.decoder(latent_vecs, training=True)
                 gen_loss = self.gen_loss(generated_images, images)
                 self.gen_loss_mean(gen_loss)
-            gradients_of_generator = gen_tape.gradient(gen_loss, self.generator.trainable_variables)
-            self.generator_optimizer.apply_gradients(zip(gradients_of_generator, self.generator.trainable_variables))
+                self.last_gradients = gen_tape.gradient(gen_loss, self.decoder.trainable_variables)
+            self.generator_optimizer.apply_gradients(zip(self.last_gradients, self.decoder.trainable_variables))
         return train_step
 
 

@@ -198,8 +198,9 @@ def train_main(args, train_ds, plot_freq, output_path, generator,
 
 
 if __name__ == '__main__':
+    tf.keras.backend.set_floatx('float32')
+
     args = get_args()
-    tf.keras.backend.set_floatx('float64')
 
 
     train_ds = get_dataset(args.batches)
