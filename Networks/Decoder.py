@@ -10,12 +10,12 @@ class Decoder(NN):
     def __init__(self):
         super(Decoder, self).__init__()
 
-        self.fully_connected3 = Dense(512, activation='relu', dtype=tf.float32)
-        self.fully_connected4 = Dense(7*7*64, activation='relu', dtype=tf.float32)
+        self.fully_connected3 = Dense(512, activation='relu')
+        self.fully_connected4 = Dense(7*7*64, activation='relu')
         self.reshape = Reshape((7, 7, 64))
-        self.conv_transpose1 = Conv2DTranspose(32, 3, padding="same", activation='relu', strides=2, dtype=tf.float32)
+        self.conv_transpose1 = Conv2DTranspose(32, 3, padding="same", activation='relu', strides=2)
         self.conv_transpose2 = Conv2DTranspose(1, 3, padding="same", activation='sigmoid',
-                                               strides=2, dtype=tf.float32)
+                                               strides=2)
 
         print("Decoder network created")
 

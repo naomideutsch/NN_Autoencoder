@@ -13,11 +13,11 @@ class Encoder(NN):
         super(Encoder, self).__init__()
 
         # encoder
-        self.conv1 = Conv2D(32, 3, padding="same", activation='relu', strides=2, dtype=tf.float32)
-        self.conv2 = Conv2D(64, 3, padding="same", activation='relu', strides=2, dtype=tf.float32)
-        self.flatten = Flatten(dtype=tf.float32)
-        self.fully_connected1 = Dense(512, activation='relu', dtype=tf.float32)
-        self.fully_connected2 = Dense(10, dtype=tf.float32)
+        self.conv1 = Conv2D(32, 3, padding="same", activation='relu', strides=2)
+        self.conv2 = Conv2D(64, 3, padding="same", activation='relu', strides=2)
+        self.flatten = Flatten()
+        self.fully_connected1 = Dense(512, activation='relu')
+        self.fully_connected2 = Dense(10)
 
 
         print("Encoder network created")
