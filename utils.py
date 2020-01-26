@@ -113,6 +113,7 @@ class CategoricalPlotter:
         if not os.path.exists(self.output_path):
             os.mkdir(self.output_path)
         plt.savefig(os.path.join(self.output_path, self.title + ".png"))
+        print(os.path.join(self.output_path, self.title + ".png"))
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~#

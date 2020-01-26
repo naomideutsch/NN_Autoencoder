@@ -25,6 +25,8 @@ def get_args():
     parser.add_argument('--latent_vec_size', '-z', type=int, default=100, help='The size of z of '
                                                                                'the generator')
     parser.add_argument('--optimizer', '-opt', default="adam", help='optimizer  type')
+    parser.add_argument('--learning_rate', '-lr', type=float, default=1e-4, help='learning rate')
+
     parser.add_argument('--plot_freq', '-pf', type=int, default=500,
                         help='iteration check point to the plot')
     parser.add_argument('--output_path', default=os.getcwd(), help='The path to keep the output')
@@ -42,7 +44,7 @@ def get_network(network_type):
 
 def get_optimizer(optimizer_type):
     if optimizer_type == "adam":
-        return tf.keras.optimizers.Adam(1e-4)
+        return tf.keras.optimizers.Adam(1e-6)
     return None
 
 
@@ -62,7 +64,7 @@ def get_dataset(batch_size, latent_vec_size):
 
     train_images = train_images / 255.0  # Normalize the images to [-1, 1]
     train_ds = tf.data.Dataset.from_tensor_slices(train_images).shuffle(x_train.shape[0]).batch(batch_size)
-    return train_ds, x_train.shape[0]
+    return train_ds, y_train, x_train.shape[0]
 
 
 
@@ -73,9 +75,8 @@ def get_dataset(batch_size, latent_vec_size):
 
 
 
-def generate_sample(model, latent_vec_size, output_dir):
-    fake_vec = tf.Variable(np.random.normal(size=(1, latent_vec_size)), trainable=False).numpy()
-    output = model(fake_vec, training=False)
+def generate_sample(model, zspace_vecs, output_dir):
+    output = model(np.expand_dims(zspace_vecs[0], 0), training=False)
 
     plt.figure()
     plt.imshow(output[0, :, :, 0] * 255.0, cmap='gray')
@@ -86,6 +87,23 @@ def generate_sample(model, latent_vec_size, output_dir):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     plt.savefig(os.path.join(output_dir, title + ".png"))
+
+
+def visualize_latent(latent_vecs, label, title, output_path, max_examples, embed_tech):
+    categorical_plotter = CategoricalPlotter(np.unique(label), title, output_path)
+
+    if embed_tech == "lda":
+        lda = LinearDiscriminantAnalysis(n_components=2)
+        result = lda.fit_transform(latent_vecs, label[:min(max_examples, label.shape[0])])
+    else:
+        tsne = TSNE(n_components=2)
+        result = tsne.fit_transform(latent_vecs)
+
+    for i in range(result.shape[0]):
+        categorical_plotter.add(label[i], result[i, 0], result[i, 1])
+
+    categorical_plotter.plot()
+    print("visulaization of z_space is done")
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -143,6 +161,7 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
 
     finally:
         print("train is done")
+        return z_space_vecs
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -152,13 +171,14 @@ if __name__ == '__main__':
     args = get_args()
     tf.keras.backend.set_floatx('float64')
 
-    train_ds, dataset_size = get_dataset(args.batches, args.latent_vec_size)
+    train_ds, label, dataset_size = get_dataset(args.batches, args.latent_vec_size)
     model = Decoder()
 
 
-    train_main(args, train_ds, dataset_size, args.plot_freq,
+    z_space_vecs = train_main(args, train_ds, dataset_size, args.plot_freq,
                args.output_path, model)
-    generate_sample(model, args.latent_vec_size, args.output_path)
+    generate_sample(model, z_space_vecs , args.output_path)
+    visualize_latent(z_space_vecs, label, "z_space_with_tsne", args.output_path, 2000, "tsne")
 
 
 
