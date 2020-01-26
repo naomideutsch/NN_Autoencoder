@@ -22,7 +22,7 @@ def get_args():
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--batches', '-bs', type=int, default=32, help='number of batches')
     parser.add_argument('--epochs', '-ep', type=int, default=1, help='number of epochs')
-    parser.add_argument('--latent_vec_size', '-z', type=int, default=100, help='The size of z of '
+    parser.add_argument('--latent_vec_size', '-z', type=int, default=10, help='The size of z of '
                                                                                'the generator')
     parser.add_argument('--optimizer', '-opt', default="adam", help='optimizer  type')
     parser.add_argument('--learning_rate', '-lr', type=float, default=1e-4, help='learning rate')
@@ -114,8 +114,8 @@ def visualize_latent(latent_vecs, label, title, output_path, max_examples, embed
 
 def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
 
-    model_optimizer = get_optimizer(args.optimizer, args.learning_rate)
-    z_space_optimizer = get_optimizer(args.optimizer, args.learning_rate)
+    model_optimizer = get_optimizer(args.optimizer, 1e-4)
+    z_space_optimizer = get_optimizer(args.optimizer, 1e-5)
 
     loss = get_loss("MSE")
     trainer = GloTrainer(model, model_optimizer, z_space_optimizer, loss, ds_size, args.latent_vec_size)
@@ -135,7 +135,8 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
                 relevant_z_vecs = tf.Variable(z_space_vecs[batch_idx: batch_idx + real_images.shape[0]], trainable=True)
 
                 train_step(real_images, relevant_z_vecs)
-                z_space_vecs[batch_idx: batch_idx + real_images.shape[0]] = relevant_z_vecs.numpy()
+                normalize_result, _ = tf.linalg.normalize(relevant_z_vecs.numpy(), axis=0)
+                z_space_vecs[batch_idx: batch_idx + real_images.shape[0]] = normalize_result
 
                 if train_counter % plot_freq == 0:
 
@@ -158,7 +159,8 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
         # Reset the metrics for the next epoch
         plotter.plot()
 
-
+    except Exception as e:
+        print(e)
     finally:
         print("train is done")
         return z_space_vecs
@@ -169,17 +171,16 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
 
 if __name__ == '__main__':
     args = get_args()
-    tf.keras.backend.set_floatx('float64')
+    tf.keras.backend.set_floatx('float32')
 
     train_ds, label, dataset_size = get_dataset(args.batches, args.latent_vec_size)
-    model = Decoder()
+    model = Decoder(True)
 
 
     z_space_vecs = train_main(args, train_ds, dataset_size, args.plot_freq,
                args.output_path, model)
     generate_sample(model, z_space_vecs , args.output_path)
-    visualize_latent(z_space_vecs, label, "z_space_with_tsne", args.output_path, 1000, "tsne")
-
+    # visualize_latent(z_space_vecs, label, "z_space_with_tsne", args.output_path, 1000, "tsne")
 
 
 

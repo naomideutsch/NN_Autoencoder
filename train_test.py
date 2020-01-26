@@ -1,5 +1,7 @@
 import tensorflow as tf
 import numpy as np
+from tensorflow.keras.layers import Embedding
+
 
 class Trainer:
     def __init__(self, model, optimizer, loss, loss_with_latent=False):
@@ -105,6 +107,7 @@ class GloTrainer:
         self.z_space_loss_mean = tf.keras.metrics.Mean(name='train_loss')
         self.last_gradients = None
 
+
     def get_step(self):
         @tf.function
         def train_step(images, relevant_z_vecs):
@@ -124,8 +127,8 @@ class GloTrainer:
                 self.z_space_loss_mean(z_space_loss)
 
             zspace_gradients = tf.convert_to_tensor(zspace_tape.gradient(z_space_loss, relevant_z_vecs))
+            # relevant_z_vecs.assign_sub(zspace_gradients * 0.001)
             self.zspace_optimizer.apply_gradients(zip([zspace_gradients], [relevant_z_vecs]))
-
             return self.last_gradients
         return train_step
 
