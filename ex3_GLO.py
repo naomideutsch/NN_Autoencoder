@@ -11,9 +11,9 @@ import numpy as np
 import os
 import itertools
 
-from Networks.Generator import Generator
+from Networks.Decoder import Decoder
 
-from train_test import Trainer
+from train_test import GloTrainer
 
 import matplotlib.pyplot as plt
 
@@ -49,64 +49,39 @@ def get_optimizer(optimizer_type):
 def get_loss(loss_type):
     loss = None
     if loss_type == "MSE":
-        loss = tf.keras.losses.MSE()
+        loss = tf.keras.losses.MSE
     return loss
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Data Loaders ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-def get_dataset(batch_size, *args):
+def get_dataset(batch_size, latent_vec_size):
     (x_train, y_train), (_, _) = tf.keras.datasets.mnist.load_data()
-    train_images = x_train.reshape(x_train.shape[0], 28, 28, 1).astype('float32')
-    train_images = (train_images - 127.5) / 127.5  # Normalize the images to [-1, 1]
-    train_ds = tf.data.Dataset.from_tensor_slices(train_images).shuffle(x_train.shape[0]).batch(batch_size)
-    return train_ds, x_train.shape[0]
+    train_images = x_train.reshape(x_train.shape[0], 28, 28, 1)
+    z_space_vecs = tf.Variable(np.random.normal(size=(x_train.shape[0], latent_vec_size)), trainable=True).numpy()
 
-def get_zspace_dataset(train_data_size, latent_vec_size, batch_size, *args):
-    z_space_vecs = np.random.normal(size=(train_data_size, latent_vec_size))
-    z_space_ds = tf.data.Dataset.from_tensor_slices(z_space_vecs).shuffle(z_space_vecs.shape[0]).batch(batch_size)
-    return z_space_ds
+    train_images = train_images / 255.0  # Normalize the images to [-1, 1]
+    train_ds = tf.data.Dataset.from_tensor_slices(train_images).shuffle(x_train.shape[0]).batch(batch_size)
+    return train_ds, z_space_vecs
+
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Output functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-def generate_zspace_interpolation(generator, latent_vec_size, output_path, interplate_images):
-    fake_vec1 = np.random.normal(0, 1, (1, latent_vec_size))
-    fake_vec2 = np.random.normal(0, 1, (1, latent_vec_size))
-
-    outputs = []
-    titles = []
-
-    alphas = np.linspace(0, 1, num=interplate_images)
-    for a in alphas:
-        outputs.append(generator(a * fake_vec1 + (1 - a) * fake_vec2, training=False))
-        titles.append("a={}".format(a))
-
-    generate_image_from_list(outputs, titles, "z_space_interpolation", output_path)
 
 
-def generate_image_from_list(images, images_titles, title, output_path):
-    fig, axs = plt.subplots(1, len(images), figsize=(20, 5))
-    for i in range(len(images)):
-        axs[i].imshow(images[i][0, :, :, 0] * 127.5 + 127.5, cmap='gray')
-        axs[i].set_title(images_titles[i])
-    fig.suptitle(title)
-    if not os.path.exists(output_path):
-        os.mkdir(output_path)
-    plt.savefig(os.path.join(output_path, title + ".png"))
 
-
-def generate_sample(generator, latent_vec_size, output_dir):
-    fake_vec = np.random.normal(0, 1, (1, latent_vec_size))
-    output = generator(fake_vec, training=False)
+def generate_sample(model, latent_vec_size, output_dir):
+    fake_vec = tf.Variable(np.random.normal(size=(1, latent_vec_size)), trainable=False).numpy()
+    output = model(fake_vec, training=False)
 
     plt.figure()
-    plt.imshow(output[0, :, :, 0] * 127.5 + 127.5, cmap='gray')
+    plt.imshow(output[0, :, :, 0] * 255.0, cmap='gray')
 
-    title = "Generator_output"
+    title = "GLO_output"
 
     plt.title(title)
     if not os.path.exists(output_dir):
@@ -114,74 +89,49 @@ def generate_sample(generator, latent_vec_size, output_dir):
     plt.savefig(os.path.join(output_dir, title + ".png"))
 
 
-def generate_and_save_images(model, epoch, test_input, output_path):
-    # Notice `training` is set to False.
-    # This is so all layers run in inference mode (batchnorm).
-    predictions = model(test_input, training=False)
-
-    fig = plt.figure(figsize=(4, 4))
-
-    for i in range(predictions.shape[0]):
-        plt.subplot(4, 4, i + 1)
-        plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5, cmap='gray')
-        plt.axis('off')
-    if not os.path.exists(output_path):
-        os.mkdir(output_path)
-
-    plt.savefig(os.path.join(output_path, 'image_at_epoch_{}.png'.format(epoch)))
-    plt.show()
-
-
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Training ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-def train_main(args, real_ds, fake_ds,  plot_freq, output_path, decoder,
-               discriminator):
+
+
+def train_main(args, real_ds, z_space_vecs, plot_freq, output_path, model):
 
     optimizer = get_optimizer(args.optimizer)
     loss = get_loss("MSE")
-    trainer = GloTrainer(decoder, optimizer, loss)
+    trainer = GloTrainer(model, optimizer, loss)
 
-    generator_plotter = Plotter(['train'], "generator", os.path.join(output_path, "Loss"))
-    discriminator_plotter = Plotter(['train'], "discriminator", os.path.join(output_path, "Loss"))
-
-    seed = tf.random.normal([16, args.latent_vec_size])
-
-    output_for_epochs = []
-    titles = []
+    plotter = Plotter(['model loss', 'z space Loss'], "GLO", os.path.join(output_path, "Loss"))
 
     try:
+        batch_idx = 0
         train_counter = 0
         train_step = trainer.get_step()
 
         for epoch in range(args.epochs):
             for real_images in real_ds:
-                fake_vecs = np.random.normal(0, 1, (args.batches, args.latent_vec_size))
-
-                train_step(real_images, fake_vecs)
+                train_counter += 1
+                train_step(real_images, z_space_vecs, batch_idx, batch_idx + real_images.shape[0])
 
                 if train_counter % plot_freq == 0:
-                    template = 'Epochs {}, Discriminator Loss: {}, Generator Loss: {}'
-                    print(template.format(epoch + 1,
-                                          trainer.disc_loss_mean.result(),
-                                          trainer.gen_loss_mean.result()))
 
-                    discriminator_plotter.add("train", train_counter,
-                                              tf.cast(trainer.disc_loss_mean.result(), tf.float32).numpy())
-                    generator_plotter.add("train", train_counter,
-                                          tf.cast(trainer.gen_loss_mean.result(), tf.float32).numpy())
+                    template = 'Epochs {}, model Loss: {}, z space Loss: {}'
+                    print(template.format(epoch + 1,
+                                          trainer.model_loss_mean.result(), trainer.z_space_loss_mean.result()))
+
+                    plotter.add("model loss", train_counter,
+                                              tf.cast(trainer.model_loss_mean.result(), tf.float32).numpy())
+                    plotter.add("z space Loss", train_counter,
+                                              tf.cast(trainer.z_space_loss_mean.result(), tf.float32).numpy())
 
                 train_counter += 1
+                batch_idx += real_images.shape[0]
 
-            trainer.disc_loss_mean.reset_states()
-            trainer.gen_loss_mean.reset_states()
-
-            generate_and_save_images(generator, epoch, seed, args.output_path)
+            trainer.train_loss.reset_states()
+            batch_idx = 0
 
         # Reset the metrics for the next epoch
-        discriminator_plotter.plot()
-        generator_plotter.plot()
+        plotter.plot()
 
 
     finally:
@@ -195,17 +145,14 @@ if __name__ == '__main__':
     args = get_args()
     tf.keras.backend.set_floatx('float64')
 
-    real_ds, samples_num = get_dataset(args.batches)
-    z_space_ds = get_zspace_dataset(samples_num, args.latent_vec_size, args.batches)
-
-    generator = Generator()
+    train_ds, z_space_vecs = get_dataset(args.batches, args.latent_vec_size)
+    model = Decoder()
 
 
-    train_main(args, real_ds, z_space_ds, args.plot_freq,
-               args.output_path, generator)
+    train_main(args, train_ds, z_space_vecs, args.plot_freq,
+               args.output_path, model)
+    generate_sample(model, args.latent_vec_size, args.output_path)
 
-    generate_sample(generator, args.latent_vec_size, args.output_path)
-    generate_zspace_interpolation(generator, args.latent_vec_size, args.output_path, 7)
 
 
 
