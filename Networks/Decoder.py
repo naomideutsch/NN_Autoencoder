@@ -29,22 +29,22 @@ class Decoder(NN):
         self.bn3 = None
 
         if raanan_architecture:
-            # self.fully_connected3 = Dense(1024)
-            # self.fully_connected4 = Dense(7 * 7 * 128)
-            # self.reshape = Reshape((7, 7, 128))
-            # self.conv_transpose1 = Conv2DTranspose(64, 4, padding="same", strides=2)
-            # self.conv_transpose2 = Conv2DTranspose(1, 4, padding="same", activation='tanh',
-            #                                        strides=2)
-            # self.bn1 = BatchNormalization()
-            # self.bn2 = BatchNormalization()
-            # self.bn3 = BatchNormalization()
-
-            self.fully_connected3 = Dense(512)
-            self.fully_connected4 = Dense(7 * 7 * 64)
-            self.reshape = Reshape((7, 7, 64))
-            self.conv_transpose1 = Conv2DTranspose(32, 3, padding="same", strides=2)
-            self.conv_transpose2 = Conv2DTranspose(1, 3, padding="same", activation='tanh',
+            self.fully_connected3 = Dense(1024)
+            self.fully_connected4 = Dense(7 * 7 * 128)
+            self.reshape = Reshape((7, 7, 128))
+            self.conv_transpose1 = Conv2DTranspose(64, 4, padding="same", strides=2)
+            self.conv_transpose2 = Conv2DTranspose(1, 4, padding="same", activation='tanh',
                                                    strides=2)
+            self.bn1 = BatchNormalization()
+            self.bn2 = BatchNormalization()
+            self.bn3 = BatchNormalization()
+
+            # self.fully_connected3 = Dense(512)
+            # self.fully_connected4 = Dense(7 * 7 * 64)
+            # self.reshape = Reshape((7, 7, 64))
+            # self.conv_transpose1 = Conv2DTranspose(32, 3, padding="same", strides=2)
+            # self.conv_transpose2 = Conv2DTranspose(1, 3, padding="same", activation='tanh',
+            #                                        strides=2)
 
         print("Decoder network created with raanan architecture={}".format(raanan_architecture))
 
