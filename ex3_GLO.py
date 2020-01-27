@@ -140,7 +140,7 @@ def visualize_latent(latent_vecs, label, title, output_path, max_examples, embed
 def generate_and_save_images(model, latent_vec_size, output_path, cov, mean):
   # Notice `training` is set to False.
   # This is so all layers run in inference mode (batchnorm).
-  seed = tf.random.normal([16, latent_vec_size], mean=mean, stddev=cov)
+  seed = np.random.multivariate_normal(size=(16), mean=mean, cov=cov)
   predictions = model(tf.Variable(seed, trainable=False))
 
   fig = plt.figure(figsize=(4,4))
@@ -226,7 +226,7 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
     plotter.plot()
 
     cov = np.cov(z_space_vecs.T)
-    mean = np.mean(z_space_vecs.T)
+    mean = np.mean(z_space_vecs, axis=0)
     return cov, mean
 
     # except Exception as e:
