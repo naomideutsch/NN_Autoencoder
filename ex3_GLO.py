@@ -145,12 +145,13 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
         for real_images in real_ds:
             relevant_z_vecs = tf.Variable(z_space_vecs[batch_idx: batch_idx + real_images.shape[0]], trainable=True)
 
-
+            z_space_step(real_images, relevant_z_vecs)
+            
             model_step(real_images, relevant_z_vecs)
 
-            z_space_step(real_images, relevant_z_vecs)
 
-            normalize_result = relevant_z_vecs.numpy() /np.maximum(np.linalg.norm(relevant_z_vecs.numpy(), axis=1, keepdims=True), 1)
+
+            normalize_result = relevant_z_vecs.numpy() / np.maximum(np.linalg.norm(relevant_z_vecs.numpy(), axis=1, keepdims=True), 1)
 
             z_space_vecs[batch_idx: batch_idx + real_images.shape[0]] = normalize_result
 
