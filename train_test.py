@@ -112,7 +112,8 @@ class GloTrainer:
         @tf.function
         def model_step(images, relevant_z_vecs):
             with tf.GradientTape() as dec_tape:
-                generated_images = self.decoder(relevant_z_vecs, training=True)
+                generated_images = self.decoder(relevant_z_vecs)
+                
 
                 loss = self.loss(generated_images, images)
 
@@ -121,45 +122,17 @@ class GloTrainer:
             model_gradient = dec_tape.gradient(loss, self.decoder.trainable_variables)
             self.model_optimizer.apply_gradients(zip(model_gradient, self.decoder.trainable_variables))
             with tf.GradientTape() as zspace_tape:
-                generated_images = self.decoder(relevant_z_vecs, training=True)
+                generated_images = self.decoder(relevant_z_vecs)
 
                 loss = self.loss(generated_images, images)
 
             self.z_space_loss_mean(loss)
             zspace_gradients = tf.convert_to_tensor(zspace_tape.gradient(loss, relevant_z_vecs))
+
             self.zspace_optimizer.apply_gradients(zip([zspace_gradients], [relevant_z_vecs]))
 
         return model_step
-    #
-    # def get_z_space_step(self):
-    #     @tf.function
-    #     def z_step(images, relevant_z_vecs):
-    #         with tf.GradientTape() as zspace_tape:
-    #             generated_images = self.decoder(relevant_z_vecs, training=True)
-    #             loss = self.loss(generated_images, images)
-    #         self.z_space_loss_mean(loss)
-    #         zspace_gradients = tf.convert_to_tensor(zspace_tape.gradient(loss, relevant_z_vecs))
-    #         self.zspace_optimizer.apply_gradients(zip([zspace_gradients], [relevant_z_vecs]))
-    #     return z_step
 
-
-
-
-
-
-
-            # with tf.GradientTape() as zspace_tape:
-            #     zspace_tape.watch(relevant_z_vecs)
-            #
-            #     generated_images = self.decoder(relevant_z_vecs, training=True)
-            #     z_space_loss = self.loss(generated_images, images)
-            #     self.z_space_loss_mean(z_space_loss)
-            #
-            # zspace_gradients = tf.convert_to_tensor(zspace_tape.gradient(z_space_loss, relevant_z_vecs))
-            # # relevant_z_vecs.assign_sub(zspace_gradients * 0.001)
-            # self.zspace_optimizer.apply_gradients(zip([zspace_gradients], [relevant_z_vecs]))
-            # return self.last_gradients
-        return train_step
 
 
 
