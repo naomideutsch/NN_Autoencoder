@@ -87,7 +87,7 @@ def generate_sample(model, latent_vec_size, output_dir):
     output = model(tf.Variable(z_space_vec, trainable=False))
 
     plt.figure()
-    plt.imshow(output[0, :, :, 0] * 255.0, cmap='gray')
+    plt.imshow(denormalize_generate_image(output[0, :, :, 0]), cmap='gray')
 
     title = "GLO_output"
 
