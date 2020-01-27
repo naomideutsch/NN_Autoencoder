@@ -29,7 +29,7 @@ def get_args():
     parser.add_argument('--optimizer', '-opt', default="adam", help='optimizer  type')
     parser.add_argument('--model_learning_rate', '-mlr', type=float, default=0.001, help='learning rate')
     parser.add_argument('--z_learning_rate', '-zlr', type=float, default=0.01, help='learning rate')
-
+    parser.add_argument('--sigmoid_norm', action="store_true" ,help='use sigmoid last activation')
 
 
     parser.add_argument('--plot_freq', '-pf', type=int, default=500,
@@ -63,20 +63,25 @@ def get_loss(loss_type):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Data Loaders ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-def get_dataset(batch_size, latent_vec_size):
+def get_dataset(batch_size, latent_vec_size, normalization_factor):
     (x_train, y_train), (_, _) = tf.keras.datasets.mnist.load_data()
     train_images = x_train.reshape(x_train.shape[0], 28, 28, 1)
 
-    train_images = normalize_real_image(train_images).astype(np.float32)
+    train_images = normalize_real_image(train_images, normalization_factor).astype(np.float32)
 
     train_ds = tf.data.Dataset.from_tensor_slices(train_images).shuffle(x_train.shape[0]).batch(batch_size)
     return train_images, y_train, x_train.shape[0]
 
-def normalize_real_image(real_data):
-    return (real_data / 255.0)
-    # return (real_data / 127.5 - 1.).astype(np.float32)
-def denormalize_generate_image(fake_data):
-    return fake_data * 255.0  # Denormalization
+def normalize_real_image(real_data, normalize_with_sigmoid=True):
+    if normalize_with_sigmoid:
+        return (real_data / 255.0)
+    else:
+        return (real_data / 127.5 - 1.).astype(np.float32)
+def denormalize_generate_image(fake_data, normalize_with_sigmoid=True):
+    if normalize_with_sigmoid:
+        return fake_data * 255.0  # Denormalization
+    else:
+        return tf.clip_by_value((fake_data + 1) * 127.5, 0, 255)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Output functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -102,12 +107,12 @@ def generate_sample(model, latent_vec_size, output_dir):
         os.mkdir(output_dir)
     plt.savefig(os.path.join(output_dir, title + ".png"))
 
-def generate_and_save_images(model, latent_vec_size, output_path):
+def generate_and_save_images(model, latent_vec_size, output_path, normalization_factor):
     seed = tf.random.normal([16, latent_vec_size])
 
     # Notice `training` is set to False.
   # This is so all layers run in inference mode (batchnorm).
-    predictions = denormalize_generate_image(model(tf.Variable(seed, trainable=False)))
+    predictions = denormalize_generate_image(model(tf.Variable(seed, trainable=False)), normalization_factor)
 
     fig = plt.figure(figsize=(4,4))
 
@@ -244,8 +249,8 @@ if __name__ == '__main__':
     args = get_args()
     tf.keras.backend.set_floatx('float32')
 
-    train_ds, label, dataset_size = get_dataset(args.batches, args.latent_vec_size)
-    model = Decoder(True)
+    train_ds, label, dataset_size = get_dataset(args.batches, args.latent_vec_size, args.sigmoid_norm)
+    model = Decoder(True, args.sigmoid_norm)
 
 
     cov, mean = train_main(args, train_ds, dataset_size, args.plot_freq,
