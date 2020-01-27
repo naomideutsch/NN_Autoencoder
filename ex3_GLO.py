@@ -178,7 +178,7 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
 
     plotter = Plotter(['model loss', 'z space Loss'], "GLO", os.path.join(output_path, "Loss"))
 
-    z_space_vecs = np.random.normal(size=(ds_size, args.latent_vec_size))
+    z_space_vecs = np.random.normal(size=(ds_size, args.latent_vec_size), scale=np.sqrt(1.0/args.latent_vec_size))
 
     indices = np.arange(real_ds.shape[0])
 
@@ -197,7 +197,7 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
             start = i * args.batches
             relvant_indices = indices[start: start + args.batches]
             if relevant_z_vecs is None:
-                relevant_z_vecs = tf.Variable(z_space_vecs[relvant_indices], stddev=np.sqrt(1.0/self.z_dim)), trainable=True)
+                relevant_z_vecs = tf.Variable(z_space_vecs[relvant_indices], trainable=True)
             else:
                 relevant_z_vecs.assign(z_space_vecs[relvant_indices])
             relevant_images = real_ds[relvant_indices]
