@@ -27,8 +27,8 @@ def get_args():
     parser.add_argument('--latent_vec_size', '-z', type=int, default=128, choices=[64, 128], help='The size of z of '
                                                                                'the generator')
     parser.add_argument('--optimizer', '-opt', default="adam", help='optimizer  type')
-    parser.add_argument('--model_learning_rate', '-mlr', type=float, default=1e-4, help='learning rate')
-    parser.add_argument('--z_learning_rate', '-zlr', type=float, default=1e-4, help='learning rate')
+    parser.add_argument('--model_learning_rate', '-mlr', type=float, default=0.001, help='learning rate')
+    parser.add_argument('--z_learning_rate', '-zlr', type=float, default=0.01, help='learning rate')
 
 
 
@@ -68,8 +68,10 @@ def get_dataset(batch_size, latent_vec_size):
     train_images = x_train.reshape(x_train.shape[0], 28, 28, 1)
 
     train_images = train_images / 127.5 - 1.  # Normalization
+
+
     train_ds = tf.data.Dataset.from_tensor_slices(train_images).shuffle(x_train.shape[0]).batch(batch_size)
-    return train_ds, y_train, x_train.shape[0]
+    return train_images, y_train, x_train.shape[0]
 
 def denormalize_generate_image(fake_data):
     return tf.clip_by_value((fake_data + 1) * 127.5, 0, 255)  # Denormalization
@@ -133,27 +135,35 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
     z_space_vecs = np.random.normal(size=(ds_size, args.latent_vec_size),
                                                 scale=np.sqrt(1.0/args.latent_vec_size))
 
+    indices = np.arange(real_ds.shape[0])
+
 
     # try:
-    batch_idx = 0
     train_counter = 0
     model_step = trainer.get_model_step()
-    z_space_step = trainer.get_z_space_step()
+    # z_space_step = trainer.get_z_space_step()
+
+    relevant_z_vecs = None
 
 
     for epoch in range(args.epochs):
-        for real_images in real_ds:
-            relevant_z_vecs = tf.Variable(z_space_vecs[batch_idx: batch_idx + real_images.shape[0]], trainable=True)
+        np.random.shuffle(indices)
+        for i in range(int(real_ds.shape[0]/args.batches)):
+            start = i * args.batches
+            relvant_indices = indices[start: start + args.batches]
+            if relevant_z_vecs is None:
+                relevant_z_vecs = tf.Variable(z_space_vecs[relvant_indices], trainable=True)
+            else:
+                relevant_z_vecs.assign(z_space_vecs[relvant_indices])
+            relevant_images = real_ds[relvant_indices]
 
-            z_space_step(real_images, relevant_z_vecs)
-            
-            model_step(real_images, relevant_z_vecs)
+            # z_space_step(relevant_images, relevant_z_vecs)
 
+            model_step(relevant_images, relevant_z_vecs)
 
+            normalize_result = relevant_z_vecs.numpy() / np.linalg.norm(relevant_z_vecs.numpy(), axis=0, keepdims=True)
 
-            normalize_result = relevant_z_vecs.numpy() / np.maximum(np.linalg.norm(relevant_z_vecs.numpy(), axis=1, keepdims=True), 1)
-
-            z_space_vecs[batch_idx: batch_idx + real_images.shape[0]] = normalize_result
+            z_space_vecs[relvant_indices] = normalize_result
 
 
             if train_counter % plot_freq == 0:
@@ -167,7 +177,6 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
                 plotter.add("z space Loss", train_counter,
                                           tf.cast(trainer.z_space_loss_mean.result(), tf.float32).numpy())
 
-            batch_idx += real_images.shape[0]
             train_counter += 1
 
 
