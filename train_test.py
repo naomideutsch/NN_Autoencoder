@@ -113,22 +113,15 @@ class GloTrainer:
         def model_step(images, relevant_z_vecs):
             with tf.GradientTape() as dec_tape:
                 generated_images = self.decoder(relevant_z_vecs)
-                
-
                 loss = self.loss(generated_images, images)
-
             self.model_loss_mean(loss)
-
             model_gradient = dec_tape.gradient(loss, self.decoder.trainable_variables)
             self.model_optimizer.apply_gradients(zip(model_gradient, self.decoder.trainable_variables))
             with tf.GradientTape() as zspace_tape:
                 generated_images = self.decoder(relevant_z_vecs)
-
                 loss = self.loss(generated_images, images)
-
             self.z_space_loss_mean(loss)
             zspace_gradients = tf.convert_to_tensor(zspace_tape.gradient(loss, relevant_z_vecs))
-
             self.zspace_optimizer.apply_gradients(zip([zspace_gradients], [relevant_z_vecs]))
 
         return model_step

@@ -59,7 +59,6 @@ class Decoder(NN):
     def call(self, x):
         x = self.input_layer(x)
 
-
         x = self.fully_connected3(x)
         if self.bn1 != None:
             x = self.bn1(x)

@@ -107,24 +107,24 @@ def generate_sample(model, latent_vec_size, output_dir):
         os.mkdir(output_dir)
     plt.savefig(os.path.join(output_dir, title + ".png"))
 
-def generate_and_save_images(model, latent_vec_size, output_path, normalization_factor):
-    seed = tf.random.normal([16, latent_vec_size])
-
-    # Notice `training` is set to False.
-  # This is so all layers run in inference mode (batchnorm).
-    predictions = denormalize_generate_image(model(tf.Variable(seed, trainable=False)), normalization_factor)
-
-    fig = plt.figure(figsize=(4,4))
-
-    for i in range(predictions.shape[0]):
-      plt.subplot(4, 4, i+1)
-      plt.imshow(predictions[i, :, :, 0], cmap='gray')
-      plt.axis('off')
-    if not os.path.exists(output_path):
-        os.mkdir(output_path)
-
-    plt.savefig(os.path.join(output_path, 'GLO_output.png'))
-    plt.show()
+# def generate_and_save_images(model, latent_vec_size, output_path, normalization_factor):
+#     seed = tf.random.normal([16, latent_vec_size])
+#
+#     # Notice `training` is set to False.
+#   # This is so all layers run in inference mode (batchnorm).
+#     predictions = denormalize_generate_image(model(tf.Variable(seed, trainable=False)), normalization_factor)
+#
+#     fig = plt.figure(figsize=(4,4))
+#
+#     for i in range(predictions.shape[0]):
+#       plt.subplot(4, 4, i+1)
+#       plt.imshow(predictions[i, :, :, 0], cmap='gray')
+#       plt.axis('off')
+#     if not os.path.exists(output_path):
+#         os.mkdir(output_path)
+#
+#     plt.savefig(os.path.join(output_path, 'GLO_output.png'))
+#     plt.close()
 
 
 def visualize_latent(latent_vecs, label, title, output_path, max_examples, embed_tech):
@@ -160,6 +160,7 @@ def generate_and_save_images(model, seed, output_path, title):
     os.mkdir(output_path)
 
   plt.savefig(os.path.join(output_path, '{}.png'.format(title)))
+  plt.close()
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
