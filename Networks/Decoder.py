@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 from Networks.NN import NN
 from tensorflow.python.keras.layers import Conv2D, Flatten, Dense, MaxPool2D, Reshape, \
-    Conv2DTranspose, Embedding, InputLayer, BatchNormalization, ReLU
+    Conv2DTranspose, Embedding, InputLayer, BatchNormalization, ReLU, LeakyReLU
 
 from tensorflow.python.keras.activations import sigmoid, relu
 
@@ -39,11 +39,15 @@ class Decoder(NN):
             # self.bn2 = BatchNormalization()
             # self.bn3 = BatchNormalization()
 
+            self.relu1 = LeakyReLU()
+            self.relu2 = LeakyReLU()
+            self.relu3 = LeakyReLU()
+
             self.fully_connected3 = Dense(512)
             self.fully_connected4 = Dense(7 * 7 * 64)
             self.reshape = Reshape((7, 7, 64))
             self.conv_transpose1 = Conv2DTranspose(32, 3, padding="same", strides=2)
-            self.conv_transpose2 = Conv2DTranspose(1, 3, padding="same", activation='tanh',
+            self.conv_transpose2 = Conv2DTranspose(1, 3, padding="same", activation='sigmoid',
                                                    strides=2)
 
         print("Decoder network created with raanan architecture={}".format(raanan_architecture))

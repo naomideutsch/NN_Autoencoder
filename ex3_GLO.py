@@ -67,14 +67,16 @@ def get_dataset(batch_size, latent_vec_size):
     (x_train, y_train), (_, _) = tf.keras.datasets.mnist.load_data()
     train_images = x_train.reshape(x_train.shape[0], 28, 28, 1)
 
-    train_images = (train_images / 127.5 - 1.).astype(np.float32)  # Normalization
-
+    train_images = normalize_real_image(train_images).astype(np.float32)
 
     train_ds = tf.data.Dataset.from_tensor_slices(train_images).shuffle(x_train.shape[0]).batch(batch_size)
     return train_images, y_train, x_train.shape[0]
 
+def normalize_real_image(real_data):
+    return (real_data / 255.0)
+    # return (real_data / 127.5 - 1.).astype(np.float32)
 def denormalize_generate_image(fake_data):
-    return tf.clip_by_value((fake_data + 1) * 127.5, 0, 255)  # Denormalization
+    return fake_data * 255.0  # Denormalization
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Output functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
