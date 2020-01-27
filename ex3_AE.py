@@ -15,6 +15,8 @@ from train_test import Trainer, Validator
 import matplotlib.pyplot as plt
 import matplotlib.pyplot as plt
 
+# for denoising part: --dstype=denoise --reg_flag --reg_num=1e-5 --ep=3 --loss=mse --embed_tech=tsne --percent=0.8
+# for part 1: --dstype=num ---ep=3 --loss=cross_entopy --embed_tech=lda
 
 def get_args():
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -40,6 +42,9 @@ def get_args():
 
     return parser.parse_args()
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Creates Training Objects By Names ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 def get_network(network_type):
     import Networks
@@ -68,6 +73,9 @@ def get_loss(loss_type, samp_num, with_reg=False, alpha=1.0):
 
     return loss, with_reg
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Data Loaders ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 def add_channel_dim(train_1, train_2, test_1, test_2, batches_num):
     train_ds = tf.data.Dataset.from_tensor_slices((train_1, train_2)).shuffle(10000).batch(batches_num)
@@ -98,6 +106,9 @@ def get_dataset(batches_num, *args):
     train_ds, test_ds = add_channel_dim(x_train, x_train, x_test, x_test, batches_num)
     return train_ds, test_ds, x_test, y_test
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Training ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 def train_main(epochs, train_ds, test_ds, trainer, validator, plot_freq, network_type, output_path):
 
@@ -131,6 +142,9 @@ def train_main(epochs, train_ds, test_ds, trainer, validator, plot_freq, network
     finally:
         loss_plotter.plot()
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Output functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 def visualize_latent(ae, data, label, title, output_path, max_examples, embed_tech):
     categorical_plotter = CategoricalPlotter(np.unique(label), title, output_path)

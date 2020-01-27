@@ -1,16 +1,11 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
-
-from tensorflow.python.keras.losses import MSE, BinaryCrossentropy
-
-
 from utils import *
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.manifold import TSNE
+
 import argparse
 import tensorflow as tf
 import numpy as np
 import os
-import itertools
+
 
 from Networks.Generator import Generator
 from Networks.Discrimnator import Discrimnator
@@ -70,6 +65,10 @@ def get_dataset(batch_size, *args):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 def generate_zspace_interpolation(generator, latent_vec_size, output_path, interplate_images):
+    """
+    Generate the interpulation of the z space asked in the Targil.
+    @:param interplate_images: The number of interpolate images in the output
+    """
     fake_vec1 = np.random.normal(0, 1, (1, latent_vec_size))
     fake_vec2 = np.random.normal(0, 1, (1, latent_vec_size))
 
@@ -86,6 +85,9 @@ def generate_zspace_interpolation(generator, latent_vec_size, output_path, inter
 
 
 def generate_image_from_list(images, images_titles, title, output_path):
+    """
+    Generate an image from a list of images
+    """
 
     fig, axs = plt.subplots(1, len(images), figsize=(20, 5))
     for i in range(len(images)):
@@ -95,25 +97,12 @@ def generate_image_from_list(images, images_titles, title, output_path):
     if not os.path.exists(output_path):
         os.mkdir(output_path)
     plt.savefig(os.path.join(output_path, title + ".png"))
+    plt.close()
 
 
-def generate_sample(generator, latent_vec_size, output_dir):
-    fake_vec = np.random.normal(0, 1, (1, latent_vec_size))
-    output = generator(fake_vec, training=False)
-
-    plt.figure()
-    plt.imshow(output[0,:,:,0] * 127.5 + 127.5, cmap='gray')
-
-    title = "Generator_output"
-
-    plt.title(title)
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
-    plt.savefig(os.path.join(output_dir, title + ".png"))
 
 def generate_and_save_images(model, epoch, test_input, output_path):
-  # Notice `training` is set to False.
-  # This is so all layers run in inference mode (batchnorm).
+
   predictions = model(test_input, training=False)
 
   fig = plt.figure(figsize=(4,4))
@@ -126,7 +115,7 @@ def generate_and_save_images(model, epoch, test_input, output_path):
     os.mkdir(output_path)
 
   plt.savefig(os.path.join(output_path, 'image_at_epoch_{}.png'.format(epoch)))
-  plt.show()
+  plt.close()
 
 
 
@@ -136,6 +125,9 @@ def generate_and_save_images(model, epoch, test_input, output_path):
 
 def train_main(args, train_ds, plot_freq, output_path, generator,
                discriminator):
+    """
+    The train procedure.
+    """
 
     gen_optimizer = get_optimizer(args.optimizer)
     gen_loss = get_loss("cross_entropy")
@@ -147,9 +139,6 @@ def train_main(args, train_ds, plot_freq, output_path, generator,
     discriminator_plotter = Plotter(['train'], "discriminator", os.path.join(output_path, "Loss"))
 
     seed = tf.random.normal([16, args.latent_vec_size])
-    
-    output_for_epochs = []
-    titles = []
 
     try:
         train_counter = 0
@@ -179,15 +168,11 @@ def train_main(args, train_ds, plot_freq, output_path, generator,
             trainer.disc_loss_mean.reset_states()
             trainer.gen_loss_mean.reset_states()
 
-            generate_and_save_images(generator, epoch, seed, args.output_path)
-
-
-
+            generate_and_save_images(generator, epoch, seed, args.output_path) # create output for every epoch
 
         # Reset the metrics for the next epoch
         discriminator_plotter.plot()
         generator_plotter.plot()
-
 
     finally:
         print("train is done")
@@ -211,7 +196,6 @@ if __name__ == '__main__':
     train_main(args, train_ds, args.plot_freq,
                args.output_path, generator,discriminator)
 
-    generate_sample(generator, args.latent_vec_size, args.output_path)
     generate_zspace_interpolation(generator, args.latent_vec_size, args.output_path, 7)
 
 

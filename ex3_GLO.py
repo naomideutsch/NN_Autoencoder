@@ -63,21 +63,31 @@ def get_loss(loss_type):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Data Loaders ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-def get_dataset(batch_size, latent_vec_size, normalization_factor):
+def get_dataset(normalization_factor):
     (x_train, y_train), (_, _) = tf.keras.datasets.mnist.load_data()
     train_images = x_train.reshape(x_train.shape[0], 28, 28, 1)
 
     train_images = normalize_real_image(train_images, normalization_factor).astype(np.float32)
 
-    train_ds = tf.data.Dataset.from_tensor_slices(train_images).shuffle(x_train.shape[0]).batch(batch_size)
-    return train_images, y_train, x_train.shape[0]
+    return train_images
 
 def normalize_real_image(real_data, normalize_with_sigmoid=True):
+    """
+    Normalize images according to the last activation of the network (if sigmoid the values will be between [0, 1]
+    and if tanh [-1,1]
+    :param normalize_with_sigmoid: Determines the type of the last activation
+    """
     if normalize_with_sigmoid:
         return (real_data / 255.0)
     else:
         return (real_data / 127.5 - 1.).astype(np.float32)
+
 def denormalize_generate_image(fake_data, normalize_with_sigmoid=True):
+    """
+    Denormalize images according to the last activation of the network (if sigmoid the values will be between [0, 1]
+    and if tanh [-1,1]
+    :param normalize_with_sigmoid: Determines the type of the last activation
+    """
     if normalize_with_sigmoid:
         return fake_data * 255.0  # Denormalization
     else:
@@ -87,80 +97,26 @@ def denormalize_generate_image(fake_data, normalize_with_sigmoid=True):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Output functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-
-
-
-def generate_sample(model, latent_vec_size, output_dir):
-    seed = tf.random.normal([16, args.latent_vec_size])
-
-    z_space_vec = np.random.normal(size=(1, latent_vec_size),
-                                                scale=np.sqrt(1.0/latent_vec_size))
-    output = model(tf.Variable(z_space_vec, trainable=False))
-
-    plt.figure()
-    plt.imshow(denormalize_generate_image(output[0, :, :, 0]), cmap='gray')
-
-    title = "GLO_output"
-
-    plt.title(title)
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
-    plt.savefig(os.path.join(output_dir, title + ".png"))
-
-# def generate_and_save_images(model, latent_vec_size, output_path, normalization_factor):
-#     seed = tf.random.normal([16, latent_vec_size])
-#
-#     # Notice `training` is set to False.
-#   # This is so all layers run in inference mode (batchnorm).
-#     predictions = denormalize_generate_image(model(tf.Variable(seed, trainable=False)), normalization_factor)
-#
-#     fig = plt.figure(figsize=(4,4))
-#
-#     for i in range(predictions.shape[0]):
-#       plt.subplot(4, 4, i+1)
-#       plt.imshow(predictions[i, :, :, 0], cmap='gray')
-#       plt.axis('off')
-#     if not os.path.exists(output_path):
-#         os.mkdir(output_path)
-#
-#     plt.savefig(os.path.join(output_path, 'GLO_output.png'))
-#     plt.close()
-
-
-def visualize_latent(latent_vecs, label, title, output_path, max_examples, embed_tech):
-    categorical_plotter = CategoricalPlotter(np.unique(label), title, output_path)
-
-    if embed_tech == "lda":
-        lda = LinearDiscriminantAnalysis(n_components=2)
-        result = lda.fit_transform(latent_vecs, label[:min(max_examples, label.shape[0])])
-    else:
-        tsne = TSNE(n_components=2)
-        result = tsne.fit_transform(latent_vecs)
-
-    for i in range(result.shape[0]):
-        categorical_plotter.add(label[i], result[i, 0], result[i, 1])
-
-    categorical_plotter.plot()
-    print("visulaization of z_space is done")
-
-
 def generate_and_save_images(model, seed, output_path, title):
-  # Notice `training` is set to False.
-  # This is so all layers run in inference mode (batchnorm).
+    """
+    Insert every input in the seed into the model inorder
+    to generate image, all the images will be displayed in the same image.
+    assumes that there are 16 inputs in the seed.
+    """
 
-  predictions = model(tf.Variable(seed, trainable=False))
+    predictions = model(tf.Variable(seed, trainable=False))
 
-  fig = plt.figure(figsize=(4,4))
+    fig = plt.figure(figsize=(4,4))
 
-  for i in range(predictions.shape[0]):
+    for i in range(predictions.shape[0]):
       plt.subplot(4, 4, i+1)
       plt.imshow(denormalize_generate_image(predictions[i, :, :, 0]), cmap='gray')
       plt.axis('off')
-  if not os.path.exists(output_path):
-    os.mkdir(output_path)
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
 
-  plt.savefig(os.path.join(output_path, '{}.png'.format(title)))
-  plt.close()
+    plt.savefig(os.path.join(output_path, '{}.png'.format(title)))
+    plt.close()
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -169,28 +125,22 @@ def generate_and_save_images(model, seed, output_path, title):
 
 
 
-def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
-
+def train_main(args, real_ds, plot_freq, output_path, model):
+    """
+    The train procedure.
+    """
     model_optimizer = get_optimizer(args.optimizer, args.model_learning_rate)
     z_space_optimizer = get_optimizer(args.optimizer, args.z_learning_rate)
 
     loss = get_loss("MSE")
-    trainer = GloTrainer(model, model_optimizer, z_space_optimizer, loss, ds_size, args.latent_vec_size)
-
+    trainer = GloTrainer(model, model_optimizer, z_space_optimizer, loss, real_ds.shape[0], args.latent_vec_size)
     plotter = Plotter(['model loss', 'z space Loss'], "GLO", os.path.join(output_path, "Loss"))
-
-    z_space_vecs = np.random.normal(size=(ds_size, args.latent_vec_size), scale=np.sqrt(1.0/args.latent_vec_size))
-
+    z_space_vecs = np.random.normal(size=(real_ds.shape[0], args.latent_vec_size), scale=np.sqrt(1.0/args.latent_vec_size))
     indices = np.arange(real_ds.shape[0])
 
-
-    # try:
     train_counter = 0
     model_step = trainer.get_model_step()
-    # z_space_step = trainer.get_z_space_step()
-
     relevant_z_vecs = None
-
 
     for epoch in range(args.epochs):
         np.random.shuffle(indices)
@@ -202,13 +152,8 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
             else:
                 relevant_z_vecs.assign(z_space_vecs[relvant_indices])
             relevant_images = real_ds[relvant_indices]
-
-            # z_space_step(relevant_images, relevant_z_vecs)
-
             model_step(relevant_images, relevant_z_vecs)
-
             normalize_result = relevant_z_vecs.numpy() / np.maximum(np.linalg.norm(relevant_z_vecs.numpy(), axis=0, keepdims=True), 1)
-
             z_space_vecs[relvant_indices] = normalize_result
 
 
@@ -225,48 +170,33 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
 
             train_counter += 1
 
-
         trainer.model_loss_mean.reset_states()
         trainer.z_space_loss_mean.reset_states()
-        generate_and_save_images(model, z_space_vecs[:16], args.output_path, "glo_epoch_{}_output".format(epoch))
-        batch_idx = 0
-
-    # Reset the metrics for the next epoch
+        generate_and_save_images(model, z_space_vecs[:16],
+                                 args.output_path, "glo_epoch_{}_output".format(epoch)) # create output for every epoch
     plotter.plot()
-
     return z_space_vecs
-
-    # except Exception as e:
-    #     raise (e)
-    # finally:
-    #     print("train is done")
-    #     return z_space_vecs
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 if __name__ == '__main__':
+    """
+    GLO part
+    """
     args = get_args()
     tf.keras.backend.set_floatx('float32')
 
-    train_ds, label, dataset_size = get_dataset(args.batches, args.latent_vec_size, args.sigmoid_norm)
+    train_ds = get_dataset(args.sigmoid_norm)
     model = Decoder(True, args.sigmoid_norm)
-
-
-    z_space_vecs = train_main(args, train_ds, dataset_size, args.plot_freq,
+    z_space_vecs = train_main(args, train_ds, args.plot_freq,
                args.output_path, model)
-
     cov = np.cov(z_space_vecs.T)
     mean = np.mean(z_space_vecs, axis=0)
     seed = np.random.multivariate_normal(size=(16), mean=mean, cov=cov)
 
     generate_and_save_images(model, seed , args.output_path, "glo_output")
-    # generate_and_save_images(model, args.latent_vec_size, args.output_path)
-    # generate_sample(model, args.latent_vec_size , args.output_path)
-    # if args.latent_vec_size <= 20:
-    #     visualize_latent(z_space_vecs, label, "z_space_with_tsne", args.output_path, 1000, "tsne")
-    #
-    #
+
 
 
 

@@ -19,7 +19,7 @@ class Trainer:
             with tf.GradientTape(persistent=True) as tape:
                 predictions = self.model(to_predict)
                 if self.loss_with_latent:
-                    latent_vec = self.model.encode(to_predict)
+                    latent_vec = self.model.encoder(to_predict)
                     loss = self.loss(dest, predictions, latent_vec)
 
                 else:
@@ -44,7 +44,7 @@ class Validator:
         def test_step(dest, to_predict):
             predictions = self.model(to_predict)
             if self.loss_with_latent:
-                latent_vec = self.model.encode(to_predict)
+                latent_vec = self.model.encoder(to_predict)
                 t_loss = self.loss(dest, predictions, latent_vec)
             else:
                 t_loss = self.loss(dest, predictions)
