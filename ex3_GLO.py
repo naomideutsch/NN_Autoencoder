@@ -226,7 +226,7 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
     plotter.plot()
 
     cov = np.cov(z_space_vecs.T)
-    mean = np.mean(z_space_vecs)
+    mean = np.mean(z_space_vecs.T)
     return cov, mean
 
     # except Exception as e:
