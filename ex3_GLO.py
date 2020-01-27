@@ -24,7 +24,7 @@ def get_args():
     parser.add_argument('--opt_z_iters', '-ziters', type=int, default=10, help='Number of iteration to optimize z before the model optimization')
 
     parser.add_argument('--epochs', '-ep', type=int, default=1, help='number of epochs')
-    parser.add_argument('--latent_vec_size', '-z', type=int, default=128, choices=[64, 128], help='The size of z of '
+    parser.add_argument('--latent_vec_size', '-z', type=int, default=10, choices=[64, 128], help='The size of z of '
                                                                                'the generator')
     parser.add_argument('--optimizer', '-opt', default="adam", help='optimizer  type')
     parser.add_argument('--model_learning_rate', '-mlr', type=float, default=0.001, help='learning rate')
@@ -116,6 +116,24 @@ def visualize_latent(latent_vecs, label, title, output_path, max_examples, embed
     print("visulaization of z_space is done")
 
 
+def generate_and_save_images(model, latent_vec_size, output_path, cov, mean):
+  # Notice `training` is set to False.
+  # This is so all layers run in inference mode (batchnorm).
+  seed = tf.random.normal([16, latent_vec_size], mean=mean, stddev=cov)
+  predictions = model(tf.Variable(seed, trainable=False))
+
+  fig = plt.figure(figsize=(4,4))
+
+  for i in range(predictions.shape[0]):
+      plt.subplot(4, 4, i+1)
+      plt.imshow(denormalize_generate_image(predictions[i, :, :, 0]), cmap='gray')
+      plt.axis('off')
+  if not os.path.exists(output_path):
+    os.mkdir(output_path)
+
+  plt.savefig(os.path.join(output_path, 'GLO_output.png'))
+  plt.show()
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Training ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -182,12 +200,14 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
 
         trainer.model_loss_mean.reset_states()
         trainer.z_space_loss_mean.reset_states()
-
-
         batch_idx = 0
 
     # Reset the metrics for the next epoch
     plotter.plot()
+
+    cov = np.cov(z_space_vecs)
+    mean = np.mean(z_space_vecs)
+    return cov, mean
 
     # except Exception as e:
     #     raise (e)
@@ -207,9 +227,10 @@ if __name__ == '__main__':
     model = Decoder(True)
 
 
-    z_space_vecs = train_main(args, train_ds, dataset_size, args.plot_freq,
+    cov, mean = train_main(args, train_ds, dataset_size, args.plot_freq,
                args.output_path, model)
-    generate_sample(model, args.latent_vec_size , args.output_path)
+    generate_and_save_images(model, args.latent_vec_size , args.output_path, cov, mean)
+    # generate_sample(model, args.latent_vec_size , args.output_path)
     # visualize_latent(z_space_vecs, label, "z_space_with_tsne", args.output_path, 1000, "tsne")
 
 
