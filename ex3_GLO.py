@@ -56,7 +56,7 @@ def get_optimizer(optimizer_type, lr=1e-4):
 def get_loss(loss_type):
     loss = None
     if loss_type == "MSE":
-        loss = tf.keras.losses.MSE
+        loss = MSE
     return loss
 
 
@@ -67,7 +67,7 @@ def get_dataset(batch_size, latent_vec_size):
     (x_train, y_train), (_, _) = tf.keras.datasets.mnist.load_data()
     train_images = x_train.reshape(x_train.shape[0], 28, 28, 1)
 
-    train_images = train_images / 127.5 - 1.  # Normalization
+    train_images = (train_images / 127.5 - 1.).astype(np.float32)  # Normalization
 
 
     train_ds = tf.data.Dataset.from_tensor_slices(train_images).shuffle(x_train.shape[0]).batch(batch_size)
@@ -84,6 +84,8 @@ def denormalize_generate_image(fake_data):
 
 
 def generate_sample(model, latent_vec_size, output_dir):
+    seed = tf.random.normal([16, args.latent_vec_size])
+
     z_space_vec = np.random.normal(size=(1, latent_vec_size),
                                                 scale=np.sqrt(1.0/latent_vec_size))
     output = model(tf.Variable(z_space_vec, trainable=False))
@@ -97,6 +99,25 @@ def generate_sample(model, latent_vec_size, output_dir):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     plt.savefig(os.path.join(output_dir, title + ".png"))
+
+def generate_and_save_images(model, latent_vec_size, output_path):
+    seed = tf.random.normal([16, latent_vec_size])
+
+    # Notice `training` is set to False.
+  # This is so all layers run in inference mode (batchnorm).
+    predictions = denormalize_generate_image(model(tf.Variable(seed, trainable=False)))
+
+    fig = plt.figure(figsize=(4,4))
+
+    for i in range(predictions.shape[0]):
+      plt.subplot(4, 4, i+1)
+      plt.imshow(predictions[i, :, :, 0], cmap='gray')
+      plt.axis('off')
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
+
+    plt.savefig(os.path.join(output_path, 'GLO_output.png'))
+    plt.show()
 
 
 def visualize_latent(latent_vecs, label, title, output_path, max_examples, embed_tech):
@@ -132,8 +153,7 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
 
     plotter = Plotter(['model loss', 'z space Loss'], "GLO", os.path.join(output_path, "Loss"))
 
-    z_space_vecs = np.random.normal(size=(ds_size, args.latent_vec_size),
-                                                scale=np.sqrt(1.0/args.latent_vec_size))
+    z_space_vecs = np.random.normal(size=(ds_size, args.latent_vec_size))
 
     indices = np.arange(real_ds.shape[0])
 
@@ -209,7 +229,8 @@ if __name__ == '__main__':
 
     z_space_vecs = train_main(args, train_ds, dataset_size, args.plot_freq,
                args.output_path, model)
-    generate_sample(model, args.latent_vec_size , args.output_path)
+    generate_and_save_images(model, args.latent_vec_size, args.output_path)
+    # generate_sample(model, args.latent_vec_size , args.output_path)
     # visualize_latent(z_space_vecs, label, "z_space_with_tsne", args.output_path, 1000, "tsne")
 
 
