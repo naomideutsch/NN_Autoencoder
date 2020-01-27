@@ -144,10 +144,10 @@ def visualize_latent(latent_vecs, label, title, output_path, max_examples, embed
     print("visulaization of z_space is done")
 
 
-def generate_and_save_images(model, latent_vec_size, output_path, cov, mean):
+def generate_and_save_images(model, seed, output_path, title):
   # Notice `training` is set to False.
   # This is so all layers run in inference mode (batchnorm).
-  seed = np.random.multivariate_normal(size=(16), mean=mean, cov=cov)
+
   predictions = model(tf.Variable(seed, trainable=False))
 
   fig = plt.figure(figsize=(4,4))
@@ -159,8 +159,8 @@ def generate_and_save_images(model, latent_vec_size, output_path, cov, mean):
   if not os.path.exists(output_path):
     os.mkdir(output_path)
 
-  plt.savefig(os.path.join(output_path, 'GLO_output.png'))
-  plt.show()
+  plt.savefig(os.path.join(output_path, '{}.png'.format(title)))
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Training ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -206,7 +206,7 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
 
             model_step(relevant_images, relevant_z_vecs)
 
-            normalize_result = relevant_z_vecs.numpy() / np.linalg.norm(relevant_z_vecs.numpy(), axis=0, keepdims=True)
+            normalize_result = relevant_z_vecs.numpy() / np.maximum(np.linalg.norm(relevant_z_vecs.numpy(), axis=0, keepdims=True), 1)
 
             z_space_vecs[relvant_indices] = normalize_result
 
@@ -227,14 +227,13 @@ def train_main(args, real_ds, ds_size, plot_freq, output_path, model):
 
         trainer.model_loss_mean.reset_states()
         trainer.z_space_loss_mean.reset_states()
+        generate_and_save_images(model, z_space_vecs[:16], args.output_path, "glo_epoch_{}_output".format(epoch))
         batch_idx = 0
 
     # Reset the metrics for the next epoch
     plotter.plot()
 
-    cov = np.cov(z_space_vecs.T)
-    mean = np.mean(z_space_vecs, axis=0)
-    return cov, mean
+    return z_space_vecs
 
     # except Exception as e:
     #     raise (e)
@@ -253,14 +252,20 @@ if __name__ == '__main__':
     model = Decoder(True, args.sigmoid_norm)
 
 
-    cov, mean = train_main(args, train_ds, dataset_size, args.plot_freq,
+    z_space_vecs = train_main(args, train_ds, dataset_size, args.plot_freq,
                args.output_path, model)
-    generate_and_save_images(model, args.latent_vec_size , args.output_path, cov, mean)
+
+    cov = np.cov(z_space_vecs.T)
+    mean = np.mean(z_space_vecs, axis=0)
+    seed = np.random.multivariate_normal(size=(16), mean=mean, cov=cov)
+
+    generate_and_save_images(model, seed , args.output_path, "glo_output")
     # generate_and_save_images(model, args.latent_vec_size, args.output_path)
     # generate_sample(model, args.latent_vec_size , args.output_path)
-    # visualize_latent(z_space_vecs, label, "z_space_with_tsne", args.output_path, 1000, "tsne")
-
-
+    # if args.latent_vec_size <= 20:
+    #     visualize_latent(z_space_vecs, label, "z_space_with_tsne", args.output_path, 1000, "tsne")
+    #
+    #
 
 
 
