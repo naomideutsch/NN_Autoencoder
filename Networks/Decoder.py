@@ -33,7 +33,7 @@ class Decoder(NN):
             self.fully_connected4 = Dense(7 * 7 * 128)
             self.reshape = Reshape((7, 7, 128))
             self.conv_transpose1 = Conv2DTranspose(64, 4, padding="same", strides=2)
-            self.conv_transpose2 = Conv2DTranspose(1, 4, padding="same", activation='sigmoid',
+            self.conv_transpose2 = Conv2DTranspose(1, 4, padding="same", activation='tanh',
                                                    strides=2)
             self.bn1 = BatchNormalization()
             self.bn2 = BatchNormalization()
